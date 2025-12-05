@@ -1,0 +1,7 @@
+
+# .vscode local config
+.vscode
+
+# markdown rendering artifacts
+*_files/
+*.html
