@@ -1,5 +1,5 @@
 
-# proclint is meant mid to highly formalized processes, in this case
+# proclint is meant for mid to highly formalized processes, in this case
 # we'd at a minimum have a software design document.
 [file.software_design]
 # design docs follow a strict naming convention and date format like 25Dec25
@@ -41,4 +41,19 @@ depends = [
 rules = [
   # generate a warning when there are orphaned tests
   "c_source exists by name warning"
+]
+
+# custom validators
+[validator.png_check]
+cmd = "scripts/png_check {file}"
+# optional extras later:
+# cwd = "art/"
+# timeout = 10
+# severity = "error" | "warning"
+
+[file.texture]
+naming    = "{name:snake_case}_{version:int{3}}.png"
+placement = "art/textures/**"
+rules = [
+  "validate png_check",
 ]
