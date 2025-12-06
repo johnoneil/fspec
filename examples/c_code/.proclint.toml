@@ -1,39 +1,34 @@
-
 # proclint is meant for mid to highly formalized processes, in this case
 # we'd at a minimum have a software design document.
 [file.software_design]
 # design docs follow a strict naming convention and date format like 25Dec25
-naming = "{name:PascalCase}_{date:DDMonYY}.pdf"
-# design docs must be under the designs directory at some level
-placement = "designs/**"
+pattern = "designs/**/{name:PascalCase}_{date:DDMonYY}.pdf"
 
 # all c source under source and camelcase
 [file.c_source]
-naming = "{name:camelCase}.c"
-placement = "source/**"
+pattern = "source/**/{name:camelCase}.c"
 depends = [
   # c source depends on the latest design doc (matched by latest date in filename)
   "software_design latest_by date"
 ]
 rules = [
-     # c source MUST have an associate unit test, matched by name field.
+  # c source files MUST have an associated unit test, matched by name field.
+  # Note this is a *rule* not a dependency. Dependencies describe how downstream
+  # changes flow. Rules determine whether an individual file conforms to process.
   "c_unit_test exists by name"
 ]
 
-# all c headers directly under headers (no subdirectories) and camelcase
+# all c headers directly under headers (no subdirectories) and UPPERCASE
 [file.c_header]
-naming    = "{name:UPPERCASE}.h"
-# headers must be directly in the headers/ dir, with no subdirectories
-placement = "headers/"
+pattern = "headers/{name:UPPERCASE}.h"
 depends = [
   # headers depend on software design also. On design change, they must be revalidated.
   "software_design latest_by date",
 ]
 
-# for every c source we require a unit test under tests
+# Unit tests
 [file.c_unit_test]
-naming    = "{name:camelCase}_unit_test.c"
-placement = "tests/**"
+pattern = "tests/**/{name:camelCase}_unit_test.c"
 depends = [
   # unit tests should be updated when corresponding source is updated.
   "c_source by name",
@@ -43,17 +38,15 @@ rules = [
   "c_source exists by name warning"
 ]
 
-# custom validators
-[validator.png_check]
-cmd = "scripts/png_check {file}"
-# optional extras later:
-# cwd = "art/"
-# timeout = 10
-# severity = "error" | "warning"
-
-[file.texture]
-naming    = "{name:snake_case}_{version:int{3}}.png"
-placement = "art/textures/**"
-rules = [
-  "validate png_check",
+# releases (checked into config management)
+[file.release]
+patterns = [
+  "releases/{version:semver}/win32/windowsInstaller_v{version:semver}.exe",
+  "releases/{version:semver}/macos/macInstaller_v{version:semver}.dmg",
+  "releases/{version:semver}/linux/linux_v{version:semver}.gzip"
+]
+depends = [
+  "c_source all",
+  "c_header all",
+  "c_unit_test all"
 ]

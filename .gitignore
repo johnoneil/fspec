@@ -2,6 +2,9 @@
 # .vscode local config
 .vscode
 
+#macos
+.DS_Store
+
 # markdown rendering artifacts
 *_files/
 *.html

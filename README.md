@@ -1,4 +1,4 @@
-# `proclint`
+# Proclint
 
 Have you heard any of the following at your workplace?
 
@@ -10,7 +10,7 @@ Have you heard any of the following at your workplace?
 * "Please don't put spaces in filenames. It makes our lives much more difficult!"
 * "We're missing unit tests for vector_math.c."
 * "The texture was checked in but its size isn't POT."
-* "The jira task says this complete, but the work isn't where it should be."
+* "The jira task says this is complete, but the work isn't where it should be."
 * "There was an implicit order definition in the Makefile such that asset A always got built before asset B. I didn't notice when it broke."
 
 `proclint` is a tool that is meant to formalize the many process related issues that arise in art, gaming, engineering, software, and other heavily process oriented development workplaces. It aims to capture "best practice" definitions which even today may be unspecified or carried around by word-of-mouth or obscure documentation. This process related "tribal knowledge" is currently difficult to capture and frequently the source of team friction.
@@ -32,7 +32,7 @@ In other words, `proclint`:
 * Lets you define directory naming and structure conventions.
 * Lets you define file naming and placement conventions.
 * Lets you define file dependency structures, so missing or stale downstream artifacts can be detected.
-* Reports the state of a file tree to define how well it adheres to the defined process. Deviations can be returned as warnings or errors.
+* Reports how well current process artifacts (files) adhere to the defined process. Deviations can be returned as warnings or errors.
 * Provides hooks for custom file validators.
 * Can provide state information to existing database oriented process management systems (i.e. Jira) which might have an imperfect knowledge of the current project state.
 * Is meant to be configuration management system agnostic, so it can therefore work with Git, SVN etc. The process definitions are just files to be checked in.
@@ -42,7 +42,7 @@ In other words, `proclint`:
 
 ```
 proclint check [PATH]   # main thing people do
-proclint check --suggest    # same, but with “did you mean” style hints
+proclint check --suggest # same, but with “did you mean” style hints
 proclint check --json   # machine-readable output for CI tooling
 proclint init   # (future) create a default config
 proclint explain ITEM   # (future) explain why something is stale / wrong
@@ -50,7 +50,7 @@ proclint explain ITEM   # (future) explain why something is stale / wrong
 
 # Examples
 
-Here's some use cases of the `proclint` tool, where `✓ OK`, `✗ Error`, `? Warning`.
+Here's some use cases of the `proclint` tool, using the symbology: `✓ = OK`, `✗ = Error`, `? = Warning`.
 
 Configuration can define whether process deviations are reported as warnings or errors to refine CI integration and workflows.
 
@@ -80,7 +80,7 @@ $ proclint check
 
 A file is "blocked" if required sources do not yet exist, or don't yet exist in the right location.
 
-The work can't be done until something else is done.
+That is, the work can't be done until something else is done.
 
 ```
 $ proclint check art/images/house-001.png
@@ -89,6 +89,8 @@ $ proclint check art/images/house-001.png
 
 
 ## Custom File Validation
+
+`proclint` supports customized file validation.
 
 ```
 $ proclint check
@@ -99,13 +101,10 @@ $ proclint check
 
 ## Helping Developers with Suggestions
 
-Suggestions as to how to conform to spec can be provided.
+`proclint` can suggest how to conform to the spec.
 
 ```
 $ proclint check --suggest
 ✓ directory structure matches spec
 ✗ filename "art/skins/Bg-1.png" does not match spec. Did you mean "art/skins/bg-001.png" ?
 ```
-
-
-
