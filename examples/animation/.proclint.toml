@@ -1,0 +1,40 @@
+# asset structure and naming for 2D animation
+
+[file.storyboard]
+# storyboard revs like: storyboard_rev25Dec2025.pdf
+pattern = "storyboard/approved/storyboard_rev{revision:DDMonYYYY}.pdf"
+
+[file.layout]
+pattern = "layouts/approved/shot{number:int(3+)}/layout_shot{number:int(3+)}_v{version:int(2+)}.jpg"
+depends = [
+  # layout depends on the latest storyboard, by revision field
+  "storyboard latest_by revision"
+]
+
+[file.genga]
+pattern = "genga/approved/shot{number:int(3+)}/genga_shot{number:int(3+)}_rev{revision:int(2+)}_layer{layer:upper(1+)}.jpg"
+rules = [
+  # every genga must have an xsheet with same shot number and revision
+  "xsheet exists by number,revision"
+]
+depends = [
+  # genga depends on the layout for same shot / revision
+  "layout by number,revision"
+]
+
+[file.background]
+pattern = "backgrounds/approved/shot{number:int(3+)}/bg_shot{number:int(3+)}.jpg"
+depends = [
+  # background depends on layout (same shot / revision)
+  "layout by number,revision"
+]
+
+[file.xsheet]
+pattern = "genga/approved/shot{number:int(3+)}/shot{number:int(3+)}_rev{revision:int(2+)}.xs"
+
+[file.shot]
+pattern = "shots/shot{number:int(3+)}/shot_{number:int(3+)}_v{version:int(3+)}.mp4"
+depends = [
+  "genga by number,revision",
+  "background by number,revision"
+]
