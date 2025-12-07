@@ -1,40 +1,99 @@
 # asset structure and naming for 2D animation
 
+# TODO:
+# [policies]
+# blocked   = "error"   # all previous work *MUST* be done or error.
+# stale     = "warning" # we tolerate stale files with only a warning.
+# untracked = "quiet"   # allow files/dirs not in the spec without warning or error.
+
+# TODO:
+# [identifiers]
+# cut      = "cut{cut:int(3+)}"
+# cut_file = "{cut}_v{version:int(3+)}"
+# frame    = "frame{frame:int(3+)}"
+# layer    = "{layer:upper(1+)}"
+
 [file.storyboard]
 # storyboard revs like: storyboard_rev25Dec2025.pdf
 pattern = "storyboard/approved/storyboard_rev{revision:DDMonYYYY}.pdf"
 
+# check all scans are the expected size, resolution, color depth, format etc.
+[validator.scan_check]
+cmd = "scripts/scan_check {file}"
+
 [file.layout]
-pattern = "layouts/approved/shot{number:int(3+)}/layout_shot{number:int(3+)}_v{version:int(2+)}.jpg"
+pattern = "layouts/approved/cut{cut:int(3+)}/layout_cut{cut:int(3+)}.jpg"
 depends = [
   # layout depends on the latest storyboard, by revision field
   "storyboard latest_by revision"
 ]
+rules = [
+  "validate scan_check",
+]
 
 [file.genga]
-pattern = "genga/approved/shot{number:int(3+)}/genga_shot{number:int(3+)}_rev{revision:int(2+)}_layer{layer:upper(1+)}.jpg"
+pattern = "genga/approved/cut{cut:int(3+)}/genga_cut{cut:int(3+)}_{layer:upper(1+)}_frame{frame:int(1+)}.jpg"
+depends = [
+  # genga depends on the layout for same cut
+  "layout by cut"
+]
 rules = [
-  # every genga must have an xsheet with same shot number and revision
-  "xsheet exists by number,revision"
-]
-depends = [
-  # genga depends on the layout for same shot / revision
-  "layout by number,revision"
+  # every genga should have an xsheet with same cut number
+  # but it may or may not exist yet, thus we warn.
+  # This shows a kind of "weak dependency"
+  "xsheet exists by cut warn",
+  "validate scan_check",
 ]
 
+# Here, we imagine a lot of background reuse, so they all reside in a structure
+# not tied to cuts.
+# Which backgrounds are used in what cuts is not reflected in the filesystem,
+# so we can only enforce consistency in naming/placement.
+# All BGs do depend on the storyboard, though.
 [file.background]
-pattern = "backgrounds/approved/shot{number:int(3+)}/bg_shot{number:int(3+)}.jpg"
+pattern = "backgrounds/approved/bg_{id:int(3+)}_{description:upper(1+)}.jpg"
 depends = [
-  # background depends on layout (same shot / revision)
-  "layout by number,revision"
+  # BG depends on the latest storyboard, by revision field
+  "storyboard latest_by revision"
+]
+rules = [
+  "validate scan_check",
 ]
 
-[file.xsheet]
-pattern = "genga/approved/shot{number:int(3+)}/shot{number:int(3+)}_rev{revision:int(2+)}.xs"
+# XSheets are complex documents referring to numerous genga ("keyframes")
+# and douga ("inbetweens") arranged in layers like A, B, C, etc.
+# We propose some way to audit/lint/validate xsheets and make sure they're not meaningless.
+# Since this (document-internal) information is complex, we can't easily audit it
+# by filesystem alone.
+[validator.xsheet_check]
+cmd = "scripts/check_xsheet {file}"
 
-[file.shot]
-pattern = "shots/shot{number:int(3+)}/shot_{number:int(3+)}_v{version:int(3+)}.mp4"
+# the xsheet might be broken up into multiple sheets.
+[file.xsheet]
+pattern = "xsheets/approved/cut{cut:int(3+)}/cut{cut:int(3+)}_sheet{sheet:int(1+)}.xs"
+rules = [
+  "validate xsheet_check",
+]
+
+[file.douga]
+pattern = "douga/approved/cut{cut:int(3+)}/douga_cut{cut:int(3+)}_{layer:upper(1+)}_frame{frame:int(3+)}.jpg"
 depends = [
-  "genga by number,revision",
-  "background by number,revision"
+  # I would absolutely think we should have an xsheet by the time we have douga,
+  # so we error, not warn.
+  "xsheet exists by cut"
+]
+rules = [
+  "validate scan_check",
+]
+
+# In this use case, we imagine douga/xsheets/genga being physically reflected in
+# the filesystem if they're reused between cuts (via symlinks or copying).
+# This probably makes some sense due to the complexity of xsheet/genga/douga/bg coordination.
+[file.cut]
+pattern = "cuts/cut{cut:int(3+)}/cut{cut:int(3+)}_v{version:int(3+)}.mp4"
+depends = [
+  "genga by cut",
+  "xsheet by cut",
+  # "background by id"   # tracking bg use by filesystem alone not likely
+  "douga by cut",
 ]
