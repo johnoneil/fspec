@@ -1,4 +1,4 @@
-# Proclint
+# Fspec
 
 Have you heard any of the following at your workplace?
 
@@ -13,7 +13,7 @@ Have you heard any of the following at your workplace?
 * "The jira task says this is complete, but the work isn't where it should be."
 * "There was an implicit order definition in the Makefile such that asset A always got built before asset B. I didn't notice when it broke."
 
-`proclint` is a tool that is meant to formalize the many process related issues that arise in art, gaming, engineering, software, and other heavily process oriented development workplaces. It aims to capture "best practice" definitions which even today may be unspecified or carried around by word-of-mouth or obscure documentation. This process related "tribal knowledge" is currently difficult to capture and frequently the source of team friction.
+`fspec` is a tool that is meant to formalize the many process related issues that arise in art, gaming, engineering, software, and other heavily process oriented development workplaces. It aims to capture "best practice" definitions which even today may be unspecified or carried around by word-of-mouth or obscure documentation. This process related "tribal knowledge" is currently difficult to capture and frequently the source of team friction.
 
 The key is that many processes may be represented by a file structure. That is, for every step in the process, one or more files need to be produced.
 
@@ -25,9 +25,9 @@ This is applicable to many areas such as:
 * Engineering: where analyses and code may flow from design documents and knowing the stale status of previous analyses or code is important as designs change.
 * Software development: where current linting tools frequently don't address file structure or naming conventions, or such areas may be addressed ad-hoc.
 
-`proclint` finds places where the current files and artifacts don't adhere to a carefully predefined process, and can do so automatically on change as part of CI.
+`fspec` finds places where the current files and artifacts don't adhere to a carefully predefined process, and can do so automatically on change as part of CI.
 
-In other words, `proclint`:
+In other words, `fspec`:
 
 * Lets you define directory naming and structure conventions.
 * Lets you define file naming and placement conventions.
@@ -41,23 +41,23 @@ In other words, `proclint`:
 # Usage
 
 ```
-proclint check [PATH]   # main thing people do
-proclint check --suggest # same, but with “did you mean” style hints
-proclint check --json   # machine-readable output for CI tooling
-proclint init   # (future) create a default config
-proclint explain ITEM   # (future) explain why something is stale / wrong
+fspec check [PATH]   # main thing people do
+fspec check --suggest # same, but with “did you mean” style hints
+fspec check --json   # machine-readable output for CI tooling
+fspec init   # (future) create a default config
+fspec explain ITEM   # (future) explain why something is stale / wrong
 ```
 
 # Examples
 
-Here's some use cases of the `proclint` tool, using the symbology: `✓ = OK`, `✗ = Error`, `? = Warning`.
+Here's some use cases of the `fspec` tool, using the symbology: `✓ = OK`, `✗ = Error`, `? = Warning`.
 
 Configuration can define whether process deviations are reported as warnings or errors to refine CI integration and workflows.
 
 ## Naming and Structure Checks
 
 ```
-$ proclint check
+$ fspec check
 ✓ directory structure matches spec
 ✗ filename "renders/approved/shot OP 010.mp4" does not match spec.
 ```
@@ -69,7 +69,7 @@ The tool allows checking whether derived assets flow correctly from their source
 "Stale" means any file that is newer than a source or dependency. For example a 3D model may be created from a design sheet image. If the design has changed, but not the model, the model is now "stale".
 
 ```
-$ proclint check
+$ fspec check
 ✓ directory structure matches spec
 ✓ filenames match spec
 ? file "analyses/unapproved/FMA-01.xlsx" depends on nonexistent parent "designs/unapproved/system-design-01.pdf"
@@ -83,17 +83,17 @@ A file is "blocked" if required sources do not yet exist, or don't yet exist in 
 That is, the work can't be done until something else is done.
 
 ```
-$ proclint check art/images/house-001.png
+$ fspec check art/images/house-001.png
 ✗ file "art/images/house-001.png" is blocked. Missing dependency "designs/approved/architecture.pdf"
 ```
 
 
 ## Custom File Validation
 
-`proclint` supports customized file validation.
+`fspec` supports customized file validation.
 
 ```
-$ proclint check
+$ fspec check
 ✓ directory structure matches spec
 ✓ filenames match spec
 ✗ file "art/textures/approved/tank-010.tga" fails POT check.
@@ -101,10 +101,10 @@ $ proclint check
 
 ## Helping Developers with Suggestions
 
-`proclint` can suggest how to conform to the spec.
+`fspec` can suggest how to conform to the spec.
 
 ```
-$ proclint check --suggest
+$ fspec check --suggest
 ✓ directory structure matches spec
 ✗ filename "art/skins/Bg-1.png" does not match spec. Did you mean "art/skins/bg-001.png" ?
 ```

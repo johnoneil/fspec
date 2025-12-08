@@ -1,8 +1,13 @@
+
+[identifiers]
+version = "{semver}"
+date = "{DDMonYY}"
+
 # proclint is meant for mid to highly formalized processes, in this case
 # we'd at a minimum have a software design document.
 [file.software_design]
 # design docs follow a strict naming convention and date format like 25Dec25
-pattern = "designs/**/{name:PascalCase}_{date:DDMonYY}.pdf"
+pattern = "designs/**/{name:PascalCase}_{date}.pdf"
 
 # all c source under source and camelcase
 [file.c_source]
@@ -41,9 +46,9 @@ rules = [
 # releases (checked into config management)
 [file.release]
 patterns = [
-  "releases/{version:semver}/win32/windowsInstaller_v{version:semver}.exe",
-  "releases/{version:semver}/macos/macInstaller_v{version:semver}.dmg",
-  "releases/{version:semver}/linux/linux_v{version:semver}.gzip"
+  "releases/{version}/win32/windowsInstaller_{version}.exe",
+  "releases/{version}/macos/macInstaller_{version}.dmg",
+  "releases/{version}/linux/linux_{version}.gzip"
 ]
 depends = [
   "c_source all",

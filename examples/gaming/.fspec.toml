@@ -1,0 +1,14 @@
+# custom validators
+[validator.png_check]
+cmd = "scripts/png_check {file}"
+# optional extras later:
+# cwd = "art/"
+# timeout = 10
+# severity = "error" | "warning"
+
+[file.texture]
+naming    = "{name:snake_case}_{version:int{3}}.png"
+placement = "art/textures/**"
+rules = [
+  "validate png_check",
+]

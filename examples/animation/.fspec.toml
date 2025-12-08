@@ -1,28 +1,32 @@
 # asset structure and naming for 2D animation
 
-# TODO:
-# [policies]
-# blocked   = "error"   # all previous work *MUST* be done or error.
-# stale     = "warning" # we tolerate stale files with only a warning.
-# untracked = "quiet"   # allow files/dirs not in the spec without warning or error.
+[policies] # policies are either "error", "warn" or "quiet"
+blocked   = "warn" # warn if work exists but its dependencies don't yet.
+stale     = "warning" # warn if work exists but its dependencies are newer
+untracked = "quiet" # don't report if there are files not covered by the spec (default)
 
-# TODO:
-# [identifiers]
-# cut      = "cut{cut:int(3+)}"
-# cut_file = "{cut}_v{version:int(3+)}"
-# frame    = "frame{frame:int(3+)}"
-# layer    = "{layer:upper(1+)}"
+[identifiers]
+cut      = "cut{int(3+)}"
+frame    = "frame{int(3+)}"
+layer    = "{upper(1+)}"
+sheet = "sheet_{int(1+)}"
+id = "{int(3+}}"
+version = "v{int(3+)}"
+render = "{cut}_{version}"
+description = "{UPPERCASE(3,24)}"
+bg_id = "{id}_{description}"
+revision = "rev{revision:DDMonYYYY}"
 
 [file.storyboard]
 # storyboard revs like: storyboard_rev25Dec2025.pdf
-pattern = "storyboard/approved/storyboard_rev{revision:DDMonYYYY}.pdf"
+pattern = "storyboard/approved/storyboard_{revision}.pdf"
 
 # check all scans are the expected size, resolution, color depth, format etc.
 [validator.scan_check]
 cmd = "scripts/scan_check {file}"
 
 [file.layout]
-pattern = "layouts/approved/cut{cut:int(3+)}/layout_cut{cut:int(3+)}.jpg"
+pattern = "layouts/approved/{cut}/layout_{cut}.jpg"
 depends = [
   # layout depends on the latest storyboard, by revision field
   "storyboard latest_by revision"
@@ -32,7 +36,7 @@ rules = [
 ]
 
 [file.genga]
-pattern = "genga/approved/cut{cut:int(3+)}/genga_cut{cut:int(3+)}_{layer:upper(1+)}_frame{frame:int(1+)}.jpg"
+pattern = "genga/approved/{cut}/genga_{cut}_{layer}_{frame}.jpg"
 depends = [
   # genga depends on the layout for same cut
   "layout by cut"
@@ -51,7 +55,7 @@ rules = [
 # so we can only enforce consistency in naming/placement.
 # All BGs do depend on the storyboard, though.
 [file.background]
-pattern = "backgrounds/approved/bg_{id:int(3+)}_{description:upper(1+)}.jpg"
+pattern = "backgrounds/approved/bg_{bg_id}.jpg"
 depends = [
   # BG depends on the latest storyboard, by revision field
   "storyboard latest_by revision"
@@ -70,13 +74,13 @@ cmd = "scripts/check_xsheet {file}"
 
 # the xsheet might be broken up into multiple sheets.
 [file.xsheet]
-pattern = "xsheets/approved/cut{cut:int(3+)}/cut{cut:int(3+)}_sheet{sheet:int(1+)}.xs"
+pattern = "xsheets/approved/{cut}/{cut}_{sheet}.xs"
 rules = [
   "validate xsheet_check",
 ]
 
 [file.douga]
-pattern = "douga/approved/cut{cut:int(3+)}/douga_cut{cut:int(3+)}_{layer:upper(1+)}_frame{frame:int(3+)}.jpg"
+pattern = "douga/approved/{cut}/douga_{cut}_{layer}_{frame}.jpg"
 depends = [
   # I would absolutely think we should have an xsheet by the time we have douga,
   # so we error, not warn.
@@ -90,10 +94,15 @@ rules = [
 # the filesystem if they're reused between cuts (via symlinks or copying).
 # This probably makes some sense due to the complexity of xsheet/genga/douga/bg coordination.
 [file.cut]
-pattern = "cuts/cut{cut:int(3+)}/cut{cut:int(3+)}_v{version:int(3+)}.mp4"
+pattern = "cuts/{cut}/{render}.mp4"
 depends = [
   "genga by cut",
   "xsheet by cut",
-  # "background by id"   # tracking bg use by filesystem alone not likely
   "douga by cut",
+]
+# weaker associations, which can't be checked by filesystem state, but
+# worth knowing about.
+# "any background could be associated with this shot"
+associations = [
+    "background"
 ]
