@@ -1,4 +1,4 @@
-**fspec — A Declarative Way to Tame Filesystems**
+**fspec — A Declarative Way to Tame and Audit Filesystems**
 
 Modern teams accumulate enormous numbers of files — from source code to art assets, logs, CAD files, renders, and everything in between.
 Over time, naming conventions drift, contributors improvise, directory structures evolve organically, and eventually nobody knows:
@@ -11,15 +11,17 @@ Over time, naming conventions drift, contributors improvise, directory structure
 **fspec** is a declarative tool that solves this problem.
 It lets teams **describe the filesystem they *intend* to have**, and then compare the real world against that description.
 
+fspec makes structure explicit, and structured workflows enforce themselves.
+
 Think of it as **a style guide for your directory tree — one the computer can enforce.**
 
 ---
 
 ## Why fspec exists
 
-Directory structure and naming conventions are prime candidates for pure tribal knowledge. And even if documented, the relationships between files may not be. People are required to carry such information around in their heads.
+Directory structure and naming conventions are prime candidates for pure tribal knowledge. And even if documented, the relationships between files may not be. People are often required to carry such information around in their heads and convey it by word-of-mouth.
 
-Auditing large file systems therefore either require a lot of manual work or custom scripts. But by specifying an fspec for your filesystem, no matter how large, auditing becomes possible.
+Auditing large file systems therefore requires a lot of manual work or custom scripts. But by specifying an fspec for your filesystem, no matter how large, auditing becomes possible.
 
 Most tools only lint source code.
 **fspec lints the filesystem itself.**
@@ -48,10 +50,10 @@ pattern = "movies/{year}/{title}_{year}.{ext}"
 
 # and episodes by season
 [file.episode]
-# e.g. shows/CubbyBear/s01/CubbyBear.s01e03.mkv
-pattern = "shows/{show}/{season}/{show}.{season}{episode_number}.{ext}"
+# e.g. shows/CubbyBear/s01/CubbyBear.1936.s01e03.mkv
+pattern = "shows/{show}/{season}/{show}.{year}.{season}{episode_number}.{ext}"
 
-# and associated files like subtitles
+# optionally create associations between files to improve auditing.
 [file.episode_subtitle]
 # the same pattern as episode, but with a different extension
 pattern = { use = "episode", ext = "{srt,ass}" }
@@ -111,14 +113,12 @@ Your `.fspec.toml` may also include dependencies between files, which allow audi
 * Whether files are *stale* according to spec, that is, when derived files are older than their sources.
 * Whether files are *blocked* according to spec, that is, when derived files exist when their sources are missing.
 
-
-
 ```toml
 # an example of c source files which depend on a software design document.
 # If the design is newer than the produced source, your source needs to be looked at, that is, it's "stale".
 
 [file.software_design]
-pattern = "designs/**/{name:PascalCase}.{rev:DDMonYY}.pdf"
+pattern = "designs/approved/**/{name:PascalCase}.{rev:DDMonYY}.pdf"
 
 [file.c_source]
 pattern = "source/**/{name:camelCase}.c"
@@ -128,7 +128,7 @@ depends_on = ["software_design latest_by rev"]
 
 ```
 $ fspec stale
-✗ source/matrixCalc.c is stale (designs/SoftwareDesign.12Dec25.pdf updated)
+✗ source/matrixCalc.c is stale (designs/approved/SoftwareDesign.12Dec25.pdf updated)
 ```
 
 ---
@@ -189,7 +189,7 @@ fspec check       # Validate structure + naming
 fspec stale       # Report stale derived assets
 fspec suggest     # Suggest valid names for mismatched files
 fspec explain     # Show how patterns expand / which regexes are generated
-fspec graph       # Show dependency graph (optional)
+fspec graph       # Show dependency graph
 ```
 
 Common flags:
@@ -197,7 +197,7 @@ Common flags:
 ```
 --suggest   # add suggestions during check
 --ai        # allow LLM-assisted fuzzy matching
---root      # break inheritance from parent directories
+--root      # prevent the current directory .fspec from inheriting parent .fspec declarations.
 --json      # output machine-readable results
 ```
 
@@ -210,8 +210,6 @@ Common flags:
 * **Humans are bad at remembering naming rules; fspec isn’t.**
 * **Declarative rules beat ad hoc scripts.**
 * **Process integrity begins with structure.**
-
-fspec makes structure explicit, and structured workflows enforce themselves.
 
 fspec brings the benefits of linting, static analysis, schema validation, and dependency checking
 **into the directory tree itself.**
