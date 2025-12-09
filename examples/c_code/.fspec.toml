@@ -50,6 +50,15 @@ patterns = [
   "releases/{version}/macos/macInstaller_{version}.dmg",
   "releases/{version}/linux/linux_{version}.gzip"
 ]
+
+# the latest (only) release depends on all source.
+# if any source files are newer than the latest release, we know
+# the release is stale.
+[file.latest_release]
+# TODO:
+inherent = "release"
+# TODO:
+selector = "latest_by version"
 depends = [
   "c_source all",
   "c_header all",

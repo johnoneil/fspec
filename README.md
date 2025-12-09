@@ -1,110 +1,239 @@
-# Fspec
+**fspec — A Declarative Way to Tame Filesystems**
 
-Have you heard any of the following at your workplace?
+Modern teams accumulate enormous numbers of files — from animation assets to research datasets, logs, CAD files, renders, source code, and everything in between.
+Over time, naming conventions drift, contributors improvise, directory structures evolve organically, and eventually nobody knows:
 
-* "Sorry, I named the file wrong. There are two spaces instead of one."
-* "Well, the character design was updated, but we forgot to update the character models."
-* "I thought these assets were being rebuilt when the sources changed. Aren't they?"
-* "The design review signoff sheet is missing!"
-* "Oops, I accidentally skipped a number on the sidecar when checking in the final render."
-* "Please don't put spaces in filenames. It makes our lives much more difficult!"
-* "We're missing unit tests for vector_math.c."
-* "The texture was checked in but its size isn't POT."
-* "The jira task says this is complete, but the work isn't where it should be."
-* "There was an implicit order definition in the Makefile such that asset A always got built before asset B. I didn't notice when it broke."
+* *Where things are supposed to go*
+* *What files are supposed to be named*
+* *What depends on what*
+* *Which assets are stale, unused, misplaced, or redundant*
 
-`fspec` is a tool that is meant to formalize the many process related issues that arise in art, gaming, engineering, software, and other heavily process oriented development workplaces. It aims to capture "best practice" definitions which even today may be unspecified or carried around by word-of-mouth or obscure documentation. This process related "tribal knowledge" is currently difficult to capture and frequently the source of team friction.
+**fspec** is a declarative tool that solves this problem.
+It lets teams **describe the filesystem they *intend* to have**, and then compare the real world against that description.
 
-The key is that many processes may be represented by a file structure. That is, for every step in the process, one or more files need to be produced.
+Think of it as **a style guide for your directory tree — one the computer can enforce.**
 
-This tool helps *define* and *lint* any process which can be represented as a file structure. 
+---
 
-This is applicable to many areas such as:
+## Why fspec exists
 
-* Art/Game development: where artwork flows from designs, and which may inform 3D models, and which might be packed in archives. Teams may have difficulty naming and placing everything correctly.
-* Engineering: where analyses and code may flow from design documents and knowing the stale status of previous analyses or code is important as designs change.
-* Software development: where current linting tools frequently don't address file structure or naming conventions, or such areas may be addressed ad-hoc.
+Teams rarely fail because they lack powerful software; they fail because:
 
-`fspec` finds places where the current files and artifacts don't adhere to a carefully predefined process, and can do so automatically on change as part of CI.
+* Files migrate into the wrong places
+* Contributors name assets differently
+* Pipelines break silently
+* Stale files linger for months
+* Nobody can safely clean up old directories
+* New hires learn conventions by tribal knowledge
+* External audits (security, safety) require predictable structure
+* Scripts downstream assume patterns that aren’t followed upstream
 
-In other words, `fspec`:
+Most tools only lint source code.
+**fspec lints the filesystem itself.**
+This is where much real-world entropy happens.
 
-* Lets you define directory naming and structure conventions.
-* Lets you define file naming and placement conventions.
-* Lets you define file dependency structures, so missing or stale downstream artifacts can be detected.
-* Reports how well current process artifacts (files) adhere to the defined process. Deviations can be returned as warnings or errors.
-* Provides hooks for custom file validators.
-* Can provide state information to existing database oriented process management systems (i.e. Jira) which might have an imperfect knowledge of the current project state.
-* Is meant to be configuration management system agnostic, so it can therefore work with Git, SVN etc. The process definitions are just files to be checked in.
-* No server or network checks are needed.
+---
 
-# Usage
+# What fspec does
 
-```
-fspec check [PATH]   # main thing people do
-fspec check --suggest # same, but with “did you mean” style hints
-fspec check --json   # machine-readable output for CI tooling
-fspec init   # (future) create a default config
-fspec explain ITEM   # (future) explain why something is stale / wrong
-```
+## **1. Defines how your filesystem *should* look**
 
-# Examples
+Provide an`.fspec.toml` in a directory you want to tame, which describes:
 
-Here's some use cases of the `fspec` tool, using the symbology: `✓ = OK`, `✗ = Error`, `? = Warning`.
+* expected directory layout
+* filename patterns
+* reusable identifiers for frequently used elements (version, dates, case standards like camelCase )
+* allowed variants
+* optional dependencies between files
+* whether something is required or optional
 
-Configuration can define whether process deviations are reported as warnings or errors to refine CI integration and workflows.
+The description becomes the shared source of truth for your team.
 
-## Naming and Structure Checks
+---
 
-```
-$ fspec check
-✓ directory structure matches spec
-✗ filename "renders/approved/shot OP 010.mp4" does not match spec.
-```
-
-## Dependency and Staleness
-
-The tool allows checking whether derived assets flow correctly from their sources.
-
-"Stale" means any file that is newer than a source or dependency. For example a 3D model may be created from a design sheet image. If the design has changed, but not the model, the model is now "stale".
-
-```
-$ fspec check
-✓ directory structure matches spec
-✓ filenames match spec
-? file "analyses/unapproved/FMA-01.xlsx" depends on nonexistent parent "designs/unapproved/system-design-01.pdf"
-? file "models/approved/character-man-005.3ds" is stale via "designs/approved/characters.jpg"
-```
-
-## Blocked Files
-
-A file is "blocked" if required sources do not yet exist, or don't yet exist in the right location.
-
-That is, the work can't be done until something else is done.
-
-```
-$ fspec check art/images/house-001.png
-✗ file "art/images/house-001.png" is blocked. Missing dependency "designs/approved/architecture.pdf"
-```
-
-
-## Custom File Validation
-
-`fspec` supports customized file validation.
-
-```
-$ fspec check
-✓ directory structure matches spec
-✓ filenames match spec
-✗ file "art/textures/approved/tank-010.tga" fails POT check.
-```
-
-## Helping Developers with Suggestions
-
-`fspec` can suggest how to conform to the spec.
+## **2. Checks the real filesystem against the intended one**
 
 ```
 $ fspec check --suggest
 ✓ directory structure matches spec
-✗ filename "art/skins/Bg-1.png" does not match spec. Did you mean "art/skins/bg-001.png" ?
+✗ filename "renders/approved/shot OP 010.mp4" does not match spec
+  did you mean "shot_OP_010.mp4"?
 ```
+
+fspec reports:
+
+* misplaced files
+* missing files
+* pattern violations
+* unknown files
+* structural drift
+
+With `--suggest`, it offers fixes.
+
+---
+
+## **3. Allows you to audit the filesystem as an evidence of process**
+
+Your `.fspec.toml` may also include dependencies between files, which allows auditing:
+
+* Whether files are ~missing~ according to spec.
+* Whether files are ~stale~ according to spec, that is, derived files which are older than their sources.
+* Whether files are ~blocked~ according to spec, that is, derived files which exist when their sources are missing.
+
+Files may depend on pre-production sources, upstream data, layouts, logs, or intermediate artifacts.
+
+```toml
+[file.render]
+pattern = "renders/{cut}_{version}.mp4"
+depends_on = ["file.layout", "file.genga"]
+```
+
+```
+$ fspec stale
+✗ renders/cut_010_v02.mp4 is stale (genga updated)
+```
+
+---
+
+## **4. Helps clean, reorganize, or migrate messy folders**
+
+Because fspec knows the *intended* structure:
+
+* it finds files that don’t belong anywhere
+* it identifies dead directories
+* it shows mismatches between legacy naming and current standards
+* it guides controlled migrations without guesswork
+
+This is extremely useful for:
+
+* long-lived projects
+* research labs with thousands of datasets
+* enterprise directories with compliance requirements
+* shared servers passed through many contributors
+* teams inheriting “mystery folders” with no documentation
+
+---
+
+## **5. Generates filesystem-related code, tooling and documentation**
+
+Because the description is formal and consistent, fspec can generate:
+
+* directory templates
+* ingest/rename scripts
+* file validators
+* migration tools
+* watchers
+* regexes for downstream tools
+* skeleton repos or project trees
+* documentation of naming rules
+* dependency graphs
+
+fspec becomes a **single declarative source** from which your filesystem-related automation can be derived.
+
+Teams no longer write ad hoc scripts full of brittle regexes.
+
+---
+
+## **6. Provides a shared vocabulary for contributors**
+
+The filesystem often *is* the workflow:
+
+* When a file moves from “layout” to “genga,” that represents progress.
+* When a folder changes from “approved” to “final,” that encodes process.
+* When a naming scheme includes a revision, that encodes state.
+
+fspec gives new contributors:
+
+* a readable map of how things work
+* a live specification of where assets belong
+* a safety net to prevent accidental misplacement
+* a way to learn team conventions without guesswork
+
+This is not a static wiki.
+This is *executable documentation*.
+
+---
+
+# Example fspec
+
+```toml
+# fspec.toml — example taming video archives
+
+[identifiers]
+year = "{int(4)}" # 1946
+title = "{Pearl.Case}" # Its.A.Wonderful.Life
+show = title # just an alias
+season = "s{int(2+)}" # s01, s02, s999
+episode = "e{int(2+)}" # e01, e02, e999
+ext = "{mp4,mov,mkv,avi}"
+# or possibly:
+ext = "{mp4|mov|mkv|avi}"
+
+
+# movies in directories by year.
+[file.movie]
+# e.g. "It's.A.Wonderful.Life.1946.mp4"
+pattern = "movies/{year}/{title}.{year}.{ext}"
+
+[file.episode]
+pattern = "shows/{show}/{season}/{show}.{season}{episode}.{ext}"
+
+```
+
+Readable. Declarative. Self-documenting.
+
+---
+
+# CLI Overview
+
+```
+fspec check       # Validate structure + naming
+fspec stale       # Report stale derived assets
+fspec suggest     # Suggest valid names for mismatched files
+fspec explain     # Show how patterns expand / which regexes are generated
+fspec graph       # Show dependency graph (optional)
+```
+
+Common flags:
+
+```
+--suggest   # add suggestions during check
+--ai        # allow LLM-assisted fuzzy matching
+--root      # break inheritance from parent directories
+--json      # output machine-readable results
+```
+
+---
+
+# Philosophy
+
+* **The filesystem is part of the workflow. Treat it that way.**
+* **Conventions are valuable only if enforced consistently.**
+* **Humans are bad at remembering naming rules; fspec isn’t.**
+* **Declarative rules beat ad hoc scripts.**
+* **Process integrity begins with structure.**
+
+fspec brings the benefits of linting, static analysis, schema validation, and dependency checking
+**into the directory tree itself.**
+
+---
+
+# Roadmap (short)
+
+* Softer/powerful selector language
+* Policy system for stale/blocked/untracked files
+* Rewrite mode (`fspec fix`)
+* Code generation (in multiple languages)
+* LLM plugin interface (custom matching strategies)
+* Integration with PART (process-aware repository tooling)
+
+---
+
+If you want, I can also produce:
+
+* A more concise GitHub-style version
+* A version aimed specifically at VFX/animation teams
+* A version aimed at scientific/engineering datasets
+* A more technical reference-spec version
+
+But sleep on it first — structure usually becomes clearer after a night.
