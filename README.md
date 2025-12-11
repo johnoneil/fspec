@@ -51,7 +51,7 @@ Readable. Declarative. Self-documenting.
 
 ## **1. Check the current filesystem against the intended one**
 
-```
+```sh
 $ fspec check --suggest
 ✓ directory structure matches spec
 ✗ filename "renders/approved/shot OP 010.mp4" does not match spec
@@ -98,7 +98,7 @@ pattern = "tests/**/{name:camelCase}_unit_test.c"
 depends_on = ["c_source by name warn"]
 ```
 
-```
+```sh
 $ fspec stale
 ✗ source/matrixCalc.c is stale (designs/approved/SoftwareDesign.12Dec25.pdf updated)
 ```
