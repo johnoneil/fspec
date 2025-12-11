@@ -29,7 +29,7 @@ season = "s{int(2+)}"           # s01, s02, s999
 episode_number = "e{int(2+)}"   # e01, e02, e999
 ext = "{mp4,mov,mkv,avi}"
 
-# movie files: e.g. "movies/1926/its_a_wonderful_life.1926.mp4"
+# movie files: e.g. "movies/1946/its_a_wonderful_life.1946.mp4"
 [file.movie]
 pattern = "movies/{year}/{title}_{year}.{ext}"
 

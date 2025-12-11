@@ -1,0 +1,23 @@
+# fspec.toml example — a video archive
+
+# Establish conventions which may be shared across fspecs in a tree.
+[identifiers]
+year = "{int(4)}"               # 1946
+title = "{snake_case}"          # its_a_wonderful_life
+show = "{PascalCase}"           # CubbyBear
+season = "s{int(2+)}"           # s01, s02, s999
+episode_number = "e{int(2+)}"   # e01, e02, e999
+ext = "{mp4,mov,mkv,avi}"
+
+# movie files: e.g. "movies/1946/its_a_wonderful_life.1946.mp4"
+[file.movie]
+pattern = "movies/{year}/{title}_{year}.{ext}"
+
+# episodes by season: e.g. "shows/CubbyBear/s01/CubbyBear.1936.s01e03.mkv"
+[file.episode]
+pattern = "shows/{show}/{season}/{show}.{year}.{season}{episode_number}.{ext}"
+
+# For any subtitle files, there must be a similarly named episode file
+[file.episode_subtitle]
+pattern = { use = "episode", ext = "{srt,ass}" }
+rule = [ "episode exists_by show,season,episode_number" ]
