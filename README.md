@@ -1,90 +1,55 @@
-**fspec — A Declarative Way to Tame and Audit Filesystems**
+# **fspec — A Declarative Way to Tame and Audit Filesystems**
 
-Modern teams accumulate enormous numbers of files — from source code to art assets, logs, CAD files, renders, and everything in between.
-Over time, naming conventions drift, contributors improvise, directory structures evolve organically, and eventually nobody knows:
+fspec is a tool that helps define file system structure and naming conventions such that:
 
-* *Where things are supposed to go*
-* *How files are supposed to be named*
-* *What depends on what*
-* *Which assets are stale, unused, misplaced, or redundant*
+* Current filesystem structure may be continually checked to prevent drift from the agreed-upon spec.
+* The introduction of new file types and directories must be reviewed via updates to the spec.
+* Documentation for teams or migration/maintenance code may be generated from the spec.
+* Complex audits of highly process-oriented filesystems may be conducted.
+* Explicit conventions are agreed upon, reducing reliance on friction-inducing tribal knowledge.
+* Optional rules and dependencies allow missing, stale, and other process-related file states to be inferred.
 
-**fspec** is a declarative tool that solves this problem.
-It lets teams **describe the filesystem they *intend* to have**, and then compare the real world against that description.
-
-fspec makes structure explicit, and structured workflows enforce themselves.
+It lets teams **describe the filesystem they *intend* to have**, and then compare the real world against that description. In other words, **fspec lints the filesystem itself.**
 
 Think of it as **a style guide for your directory tree — one the computer can enforce.**
-
----
-
-## Why fspec exists
-
-Directory structure and naming conventions are prime candidates for pure tribal knowledge. And even if documented, the relationships between files may not be. People are often required to carry such information around in their heads and convey it by word-of-mouth.
-
-Auditing large file systems therefore requires a lot of manual work or custom scripts. But by specifying an fspec for your filesystem, no matter how large, auditing becomes possible.
-
-Most tools only lint source code.
-**fspec lints the filesystem itself.**
 
 ---
 
 # Example fspec
 
 ```toml
-# fspec.toml — example video archive
+# fspec.toml example — a video archive
 
-# unambiguously pin down your conventions
-# These identifiers may be shared across fspecs.
+# Establish conventions which may be shared across fspecs in a tree.
 [identifiers]
-year = "{int(4)}" # 1946
-title = "{snake_case}" # its_a_wonderful_life
-show = "{PascalCase}" # CubbyBear
-season = "s{int(2+)}" # s01, s02, s999
-episode_number = "e{int(2+)}" # e01, e02, e999
+year = "{int(4)}"               # 1946
+title = "{snake_case}"          # its_a_wonderful_life
+show = "{PascalCase}"           # CubbyBear
+season = "s{int(2+)}"           # s01, s02, s999
+episode_number = "e{int(2+)}"   # e01, e02, e999
 ext = "{mp4,mov,mkv,avi}"
 
-# unambiguously pin down your directory and filename structure
+# movie files: e.g. "movies/1926/its_a_wonderful_life.1926.mp4"
 [file.movie]
-# e.g. "movies/1926/its_a_wonderful_life.1926.mp4"
 pattern = "movies/{year}/{title}_{year}.{ext}"
 
-# and episodes by season
+# episodes by season: e.g. "shows/CubbyBear/s01/CubbyBear.1936.s01e03.mkv"
 [file.episode]
-# e.g. shows/CubbyBear/s01/CubbyBear.1936.s01e03.mkv
 pattern = "shows/{show}/{season}/{show}.{year}.{season}{episode_number}.{ext}"
 
-# optionally create associations between files to improve auditing.
+# For any subtitle files, there must be a similarly named episode file
 [file.episode_subtitle]
-# the same pattern as episode, but with a different extension
 pattern = { use = "episode", ext = "{srt,ass}" }
-# create a dependency, which tells us that if there's a subtitle file,
-# there should be an existing, similarly named episode.
-depends_on = [ "episode by show,season,episode_number" ]
-
+rule = [ "episode exists_by show,season,episode_number" ]
 ```
 
 Readable. Declarative. Self-documenting.
 
 ---
 
-# What fspec does
+# Typical Use Cases
 
-## **1. Defines how your filesystem *should* look**
-
-Provide an`.fspec.toml` in a directory you want to tame, which describes:
-
-* expected directory layout
-* filename patterns
-* reusable identifiers for frequently used elements (version, dates, case standards like camelCase or snake_case )
-* allowed variants
-* optional dependencies between files
-* whether something is required or optional
-
-The description becomes the shared source of truth for your team.
-
----
-
-## **2. Checks the real filesystem against the intended one**
+## **1. Check the current filesystem against the intended one**
 
 ```
 $ fspec check --suggest
@@ -95,35 +60,42 @@ $ fspec check --suggest
 
 fspec reports:
 
+* pattern violations
 * misplaced files
 * missing files
-* pattern violations
-* unknown files
+* unknown / extraneous files
 * structural drift
 
-With `--suggest`, it offers fixes.
+Deviations from the spec can be categorized as errors or warnings.
+
+With `--suggest`, fspec offers fixes.
 
 ---
 
-## **3. Allows you to audit the filesystem as an evidence of process**
+## **2. Audit the filesystem as evidence of process**
 
-Your `.fspec.toml` may also include dependencies between files, which allow auditing:
+Your `.fspec.toml` may also include rules and dependencies, enabling fspec to infer:
 
-* Whether files are *missing* according to spec.
-* Whether files are *stale* according to spec, that is, when derived files are older than their sources.
-* Whether files are *blocked* according to spec, that is, when derived files exist when their sources are missing.
+* whether files are *missing*
+* whether files are *stale* (derived files older than their sources)
+* whether files are *blocked* (derived files exist without required sources)
 
 ```toml
-# an example of c source files which depend on a software design document.
-# If the design is newer than the produced source, your source needs to be looked at, that is, it's "stale".
-
+# a set of software design docs, named by revision.
 [file.software_design]
 pattern = "designs/approved/**/{name:PascalCase}.{rev:DDMonYY}.pdf"
 
+# c source is stale if it's older than the latest design doc.
+# c source requires an associated unit test.
 [file.c_source]
 pattern = "source/**/{name:camelCase}.c"
-# c source depends on the latest software design doc.
 depends_on = ["software_design latest_by rev"]
+rule = ["c_unit_test exists_by name"]
+
+# warn if there are orphaned unit tests
+[file.c_unit_test]
+pattern = "tests/**/{name:camelCase}_unit_test.c"
+depends_on = ["c_source by name warn"]
 ```
 
 ```
@@ -133,7 +105,7 @@ $ fspec stale
 
 ---
 
-## **4. Helps clean, reorganize, or migrate messy folders**
+## **3. Clean, reorganize, or migrate messy folders**
 
 Because fspec knows the *intended* structure:
 
@@ -142,16 +114,9 @@ Because fspec knows the *intended* structure:
 * it shows mismatches between legacy naming and current standards
 * it guides controlled migrations without guesswork
 
-This is extremely useful for:
-
-* long-lived projects
-* Art and design teams with many files, many contributors, naming things by hand
-* enterprise and process heavy directories with compliance requirements
-* people who dislike writing regexes, file manipulation scripts and awk
-
 ---
 
-## **5. Generates filesystem-related code, tooling and documentation**
+## **4. Generate filesystem-related documentation, tooling, and code**
 
 Because the description is formal and consistent, fspec can generate:
 
@@ -165,20 +130,7 @@ Because the description is formal and consistent, fspec can generate:
 * documentation of naming rules
 * dependency graphs
 
-fspec becomes a **single declarative source** from which your filesystem-related automation can be derived.
-
-Teams no longer write ad hoc scripts full of brittle regexes.
-
----
-
-## **6. Provides a shared vocabulary for contributors**
-
-The filesystem often *is* the workflow, and fspec just makes this explicit, providing:
-
-* a readable map of how things work
-* a live specification of where assets belong
-* a safety net to prevent accidental misplacement
-* a way to learn team conventions without guesswork
+fspec becomes a **single declarative source** from which the filesystem automation ecosystem can be derived.
 
 ---
 
@@ -197,7 +149,7 @@ Common flags:
 ```
 --suggest   # add suggestions during check
 --ai        # allow LLM-assisted fuzzy matching
---root      # prevent the current directory .fspec from inheriting parent .fspec declarations.
+--root      # prevent the current directory .fspec from inheriting parents
 --json      # output machine-readable results
 ```
 
@@ -218,7 +170,46 @@ fspec brings the benefits of linting, static analysis, schema validation, and de
 
 # Roadmap
 
-TODO:
+### **1. Initial Implementation**
+
+* [ ] Define `.fspec.toml` format
+* [ ] Implement identifier grammar (`int()`, `snake_case`, unions, etc.)
+* [ ] Pattern compiler (expand patterns → regex)
+* [ ] Directory walking + match engine
+* [ ] Basic CLI (`check`, `suggest`, etc.)
+* [ ] Basic reporting (pattern violations, unknown files)
 
 ---
 
+### **2. Dependency & Rule Engine**
+
+* [ ] Implement dependency resolution
+* [ ] Support `depends_on` grammar
+* [ ] Detect stale files
+* [ ] Detect blocked files
+* [ ] Detect missing files
+* [ ] Implement rule grammar (`exists_by`, etc.)
+* [ ] Rule violation reporting
+
+---
+
+### **3. Matching Engine & AI Integration**
+
+* [ ] Edit-distance filename matcher
+* [ ] Structural matcher (e.g., extract season/episode, numeric groups)
+* [ ] “Did you mean” suggestion engine
+* [ ] Optional LLM-assisted matching (`--ai`)
+* [ ] Configurable match strategies / thresholds
+
+---
+
+### **4. Documentation & Code Generation**
+
+* [ ] Generate human-readable Markdown documentation from fspec
+* [ ] Generate regexes from compiled patterns
+* [ ] Generate ingest/rename scripts (Python)
+* [ ] Generate directory scaffolding templates
+* [ ] Dependency graph output (`fspec graph`)
+* [ ] JSON output mode for tooling integration
+
+---
