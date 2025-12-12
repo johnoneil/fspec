@@ -1,14 +1,10 @@
-pub fn add(left: u64, right: u64) -> u64 {
-    left + right
-}
+// src/lib.rs
+mod ast;
+mod parser;
+use chumsky::Parser;
 
-#[cfg(test)]
-mod tests {
-    use super::*;
+pub use ast::{Node, Pattern};
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
+pub fn parse_pattern(input: &str) -> Result<Pattern, Vec<chumsky::error::Simple<char>>> {
+    parser::pattern_parser().parse(input)
 }
