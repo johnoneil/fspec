@@ -8,3 +8,7 @@
 # markdown rendering artifacts
 *_files/
 *.html
+
+# Added by cargo
+
+/target

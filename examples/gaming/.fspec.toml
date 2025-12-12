@@ -1,3 +1,8 @@
+
+[identifiers]
+name = "{snake_case}"
+version = "{int(3)}"
+
 # custom validators
 [validator.png_check]
 cmd = "scripts/png_check {file}"
@@ -7,8 +12,7 @@ cmd = "scripts/png_check {file}"
 # severity = "error" | "warning"
 
 [file.texture]
-naming    = "{name:snake_case}_{version:int{3}}.png"
-placement = "art/textures/**"
+pattern    = "art/textures/**/{name}_{version}.png"
 rules = [
   "validate png_check",
 ]
