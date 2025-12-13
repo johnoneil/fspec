@@ -128,6 +128,16 @@ impl<'a> Parser<'a> {
 
         let name = self.parse_ident()?;
 
+        // After ident, spaces are not allowed inside placeholders.
+        // If we see whitespace here, it means something like "{no spaces}".
+        if self.s[self.i..]
+            .chars()
+            .next()
+            .map_or(false, |c| c.is_whitespace())
+        {
+            return self.err("whitespace not allowed in placeholder");
+        }
+
         // optional ": limiter"
         let limiter = if self.peek_char(':') {
             self.bump();
@@ -348,6 +358,21 @@ mod tests {
     }
 
     #[test]
+    fn parses_placeholder_with_range_quant_no_whitespace() {
+        let p = parse_pattern("{id:int(2,5)}").unwrap();
+        assert_eq!(
+            p.nodes,
+            vec![Node::Placeholder {
+                name: "id".into(),
+                limiter: Some(Limiter {
+                    kind: LimiterKind::Int,
+                    quant: Quant::Range { min: 2, max: 5 }
+                })
+            }]
+        );
+    }
+
+    #[test]
     fn parses_multiple_placeholders_mixed_with_literals() {
         let p = parse_pattern("movies/{year}/{name:camelCase}_{year}.mp4").unwrap();
         assert_eq!(
@@ -425,5 +450,17 @@ mod tests {
             "unexpected error message: {}",
             err.message
         );
+    }
+
+    #[test]
+    fn error_on_placeholder_with_space() {
+        let err = parse_pattern("{no spaces allowed}").unwrap_err();
+        println!("error message: {}", err.message);
+    }
+
+    #[test]
+    fn placeholder_identifier_allows_underscores_and_digits() {
+        let p = parse_pattern("{valid_name_123}").unwrap();
+        assert_eq!(p.nodes.len(), 1);
     }
 }
