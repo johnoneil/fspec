@@ -394,10 +394,41 @@ fn placeholder_quant_type_camelcase() {
     );
 }
 
+#[test]
+fn placeholder_quant_type_camelcase_2() {
+    let p = parse_pattern("{name:camel_case}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::CamelCase,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
 // PascalCase,
 #[test]
 fn placeholder_quant_type_pascalcase() {
     let p = parse_pattern("{name:PascalCase}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::PascalCase,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
+// PascalCase,
+#[test]
+fn placeholder_quant_type_pascalcase_2() {
+    let p = parse_pattern("{name:pascal_case}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::Placeholder {
@@ -442,6 +473,22 @@ fn placeholder_quant_type_kebabcase() {
     );
 }
 
+// KebabCase,
+#[test]
+fn placeholder_quant_type_kebabcase_2() {
+    let p = parse_pattern("{name:kebab_case}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::KebabCase,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
 // FlatCase,
 #[test]
 fn placeholder_quant_type_flatcase() {
@@ -458,10 +505,40 @@ fn placeholder_quant_type_flatcase() {
     );
 }
 
+#[test]
+fn placeholder_quant_type_flatcase_2() {
+    let p = parse_pattern("{name:flat_case}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::FlatCase,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
 // UpperCase,
 #[test]
 fn placeholder_quant_type_uppercase() {
-    let p = parse_pattern("{name:UPPERCASE}").unwrap();
+    let p = parse_pattern("{name:UPPER_CASE}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::UpperCase,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
+#[test]
+fn placeholder_quant_type_uppercase_2() {
+    let p = parse_pattern("{name:upper_case}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::Placeholder {

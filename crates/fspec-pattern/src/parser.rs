@@ -26,7 +26,7 @@ fn parse_limiter_kind(s: &str) -> Result<LimiterKind, ParseError> {
 
         "flat_case" | "flatcase" => FlatCase,
 
-        "upper_case" | "UPPERCASE" => UpperCase,
+        "upper_case" | "UPPER_CASE" => UpperCase,
 
         _ => {
             return Err(ParseError::new(format!("unknown limiter kind: {s}")));

@@ -31,7 +31,17 @@ ident       = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 
 limiter     = { limiter_kind ~ limiter_args? }
 
-// Map these names to your LimiterKind enum in Rust.
+// NOTE: These have to explicitly match the code in parser.rs
+// Please show great care to ensure they do as this is obviously weak.
+// see also: https://stackoverflow.com/a/54330161
+// flatcase or mumblecase
+// kebab-case. Also called caterpillar-case, param-case, dash-case, hyphen-case, lisp-case, spinal-case and css-case
+// camelCase
+// PascalCase or CapitalCamelCase
+// snake_case or c_case
+// CONSTANT_CASE, MACRO_CASE, UPPER_CASE or SCREAM_CASE
+// COBOL-CASE or TRAIN-CASE
+// Ada_Case
 limiter_kind = @{
       "int"
     | "semver"
@@ -40,7 +50,7 @@ limiter_kind = @{
     | "camel_case" | "camelCase"
     | "pascal_case" | "PascalCase"
     | "flat_case" | "flatcase"
-    | "upper_case" | "UPPERCASE"
+    | "upper_case" | "UPPER_CASE"
 }
 
 // Optional “( … )” arguments: either a quant or a set.
