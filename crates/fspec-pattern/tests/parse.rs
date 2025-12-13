@@ -232,13 +232,6 @@ fn parses_placeholder_with_at_least_quant_with_whitespace() {
     );
 }
 
-#[ignore = "should we allow this case? I'm not sure."]
-#[test]
-fn parses_placeholder_with_at_least_quant_error_on_space() {
-    // no space between 3 and +
-    assert!(parse_pattern("{ id:int( 3 + ) }").is_err());
-}
-
 #[test]
 fn parses_placeholder_with_range_quant_and_whitespace() {
     let p = parse_pattern("{id:int( 2-5 )}").unwrap();

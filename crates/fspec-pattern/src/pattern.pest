@@ -1,6 +1,7 @@
 // ---- Top level ----
 
-WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+number = @{ ASCII_DIGIT+ }
+WS = _{ " " | "\t" | "\r" | "\n" }
 
 pattern     = { SOI ~ node* ~ EOI }
 
@@ -15,7 +16,7 @@ slash       = { "/" }
 globstar    = { "**" }
 
 // "{name[:limiter]?}" becomes Placeholder
-placeholder = { "{" ~ ident ~ (":" ~ limiter)? ~ "}" }
+placeholder = { "{" ~ WS* ~ ident ~ WS* ~ (":" ~ WS* ~ limiter)? ~ WS* ~ "}" }
 
 // Everything else is a Literal chunk.
 // We chunk literals so you can merge consecutive Literal nodes easily.
@@ -55,23 +56,19 @@ limiter_kind = @{
 
 // Optional “( … )” arguments: either a quant or a set.
 //limiter_args = { "(" ~ (quant | set_items) ~ ")" }
-limiter_args = { "(" ~ WHITESPACE* ~ (quant | set_items) ~ WHITESPACE* ~ ")" }
+limiter_args = { "(" ~ WS* ~ quant ~ WS* ~ ")" }
 
 // Quantifiers: exactly, at-least, range, any
 quant       = { range | at_least | exactly | any }
 
-exactly     = { number }            // (4)
-at_least    = { number ~ "+" }      // (2+)
-range       = { number ~ "-" ~ number } // (3-5)
-any         = { "*" }               // (*)
+exactly  = { number } // (4)
+at_least = { number ~ WS* ~ "+" ~ WS* }// (4+)
+range    = { number ~ WS* ~ "-" ~ WS* ~ number } // (4-5)
+any      = { "*" } // <nothing>
 
 // Example: oneof style, e.g. (mp4,mov,mkv)
 // (If you prefer `{mp4,mov}` without a limiter kind, see note below.)
 set_items   = { ident ~ ("," ~ ident)* }
-
-// ---- Lexical helpers ----
-
-number      = @{ ASCII_DIGIT+ }
 
 // literal_piece is either an escaped char or any char that doesn’t start a special token.
 // We exclude '/', '{', and the start of "**" to avoid ambiguity.

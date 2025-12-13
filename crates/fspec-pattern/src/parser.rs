@@ -49,14 +49,16 @@ fn parse_quant_leaf(pair: Pair<Rule>) -> Result<Quant, ParseError> {
         }
 
         Rule::at_least => {
-            let s = pair.as_str().trim();
-            let s = s
-                .strip_suffix('+')
-                .ok_or_else(|| ParseError::new(format!("invalid at_least quant: {s}")))?;
-            let n: usize = s
-                .trim()
+            let mut it = pair.into_inner();
+            let n_str = it
+                .next()
+                .ok_or_else(|| ParseError::new("at_least missing number".into()))?
+                .as_str();
+
+            let n: usize = n_str
                 .parse()
-                .map_err(|_| ParseError::new(format!("invalid at_least quant: {s}")))?;
+                .map_err(|_| ParseError::new(format!("invalid at_least number: {n_str}")))?;
+
             Quant::AtLeast(n)
         }
 
@@ -168,24 +170,12 @@ fn parse_placeholder(pair: Pair<Rule>) -> Result<Node, ParseError> {
 
 fn parse_quant(pair: Pair<Rule>) -> Result<Quant, ParseError> {
     // pair is Rule::quant, inner is one of: range | at_least | exactly | any
-    let inner = pair.into_inner().next().unwrap();
-    Ok(match inner.as_rule() {
-        Rule::any => Quant::Any,
-        Rule::exactly => Quant::Exactly(inner.as_str().parse().unwrap()),
-        Rule::at_least => {
-            let s = inner.as_str();
-            let n = s[..s.len() - 1].parse().unwrap();
-            Quant::AtLeast(n)
-        }
-        Rule::range => {
-            let mut it = inner.into_inner();
-            let min: usize = it.next().unwrap().as_str().parse().unwrap();
-            let max: usize = it.next().unwrap().as_str().parse().unwrap();
-            Quant::Range { min, max }
-        }
-        //_ => return Err("unexpected quant".into()),
-        _ => return Err(ParseError::new("unexpected quant".into())),
-    })
+    let inner = pair
+        .into_inner()
+        .next()
+        .ok_or_else(|| ParseError::new("empty quant".into()))?;
+
+    parse_quant_leaf(inner)
 }
 
 fn unescape_literal(s: &str) -> String {

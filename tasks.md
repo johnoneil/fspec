@@ -4,6 +4,6 @@
 4. what about filesystem root. I think it's well handled.
 5. what about single asterisk? any meaning to filesystems?
 6. What about single dots (current directory?)
-7. what about asterisks, single and double in literals? How do we better lock down what's allowed in literals generally?
+7. implement globstar ** as only existing when it's the only path segment (/** or /**/), otherwise it's part of a literal.
 8. automatically split off the extension into its own object as it's a kind of "special" thing?
-9. allow this case? { id:int( 3 + ) }
+9. allow this case? { id:int( 3 + ) }--> yes we will allow it for ergonomics.
