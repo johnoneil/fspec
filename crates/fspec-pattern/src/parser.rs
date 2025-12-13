@@ -412,6 +412,19 @@ mod tests {
         );
     }
 
+    // TODO: turn on when supported.
+    #[ignore]
+    #[test]
+    fn error_on_unopened_placeholder() {
+        let err = parse_pattern("movies/year}").unwrap_err();
+        println!("error message: {}", err.message);
+        // assert!(
+        //     err.message.contains("expected ''"),
+        //     "unexpected error message: {}",
+        //     err.message
+        // );
+    }
+
     #[test]
     fn error_on_colon_without_limiter() {
         let err = parse_pattern("{name:}").unwrap_err();
