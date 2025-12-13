@@ -27,6 +27,12 @@ fn parses_file_name() {
 }
 
 #[test]
+fn parses_file_name_unicode() {
+    let p = parse_pattern("これは何ですか.mp4").unwrap();
+    assert_eq!(p.nodes, vec![Node::Literal("これは何ですか.mp4".into()),]);
+}
+
+#[test]
 fn parses_multiple_placeholders() {
     let p = parse_pattern("movies/{year}/{name:camelCase}_{year}.mp4").unwrap();
 
@@ -64,6 +70,12 @@ fn parses_literal_only() {
 }
 
 #[test]
+fn parses_literal_unicode_only() {
+    let p = parse_pattern("これは何ですか").unwrap();
+    assert_eq!(p.nodes, vec![Node::Literal("これは何ですか".into())]);
+}
+
+#[test]
 fn parses_slashes_and_literals() {
     let p = parse_pattern("movies/2024/title.mp4").unwrap();
     assert_eq!(
@@ -74,6 +86,21 @@ fn parses_slashes_and_literals() {
             Node::Literal("2024".into()),
             Node::Slash,
             Node::Literal("title.mp4".into()),
+        ]
+    );
+}
+
+#[test]
+fn parses_slashes_and_literals_unicode() {
+    let p = parse_pattern("映画/2026/ゴジラ0.mp4").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![
+            Node::Literal("映画".into()),
+            Node::Slash,
+            Node::Literal("2026".into()),
+            Node::Slash,
+            Node::Literal("ゴジラ0.mp4".into()),
         ]
     );
 }
@@ -103,6 +130,16 @@ fn parses_placeholder_without_limiter() {
             limiter: None
         }]
     );
+}
+
+#[test]
+fn parses_placeholder_without_limiter_error_illegal_characters() {
+    assert!(parse_pattern("{year-made}").is_err());
+}
+
+#[test]
+fn parses_placeholder_without_limiter_error_illegal_characters_2() {
+    assert!(parse_pattern("{映画}").is_err());
 }
 
 #[test]
