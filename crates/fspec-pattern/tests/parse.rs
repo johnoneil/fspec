@@ -218,6 +218,21 @@ fn parses_placeholder_with_at_least_quant() {
 }
 
 #[test]
+fn parses_placeholder_with_at_least_quant_tolerable_weird_space() {
+    let p = parse_pattern("{id:int(3 +)}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "id".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::Int,
+                quant: Quant::AtLeast(3)
+            })
+        }]
+    );
+}
+
+#[test]
 fn parses_placeholder_with_at_least_quant_with_whitespace() {
     let p = parse_pattern("{ id:int( 3+ ) }").unwrap();
     assert_eq!(
@@ -262,10 +277,19 @@ fn parses_placeholder_with_range_quant_no_whitespace() {
     );
 }
 
-#[ignore = "Should we allow this case? I'm not sure"]
 #[test]
-fn parses_placeholder_with_range_quant_error_whitespace() {
-    assert!(parse_pattern("{id:int( 2 - 5 )}").is_err());
+fn parses_placeholder_with_range_quant_and_tolerable_weird_whitespace() {
+    let p = parse_pattern("{id:int(2 -5)}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "id".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::Int,
+                quant: Quant::Range { min: 2, max: 5 }
+            })
+        }]
+    );
 }
 
 #[test]
