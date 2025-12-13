@@ -409,6 +409,54 @@ fn placeholder_quant_type_camelcase_2() {
     );
 }
 
+#[test]
+fn placeholder_limiter_camelcase_quant_specific() {
+    // exactly 24 chars, not bytes, not codepoints
+    let p = parse_pattern("{name:camelCase(24)}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::CamelCase,
+                quant: Quant::Exactly(24),
+            })
+        }]
+    );
+}
+
+#[test]
+fn placeholder_limiter_camelcase_quant_range() {
+    // between 10 and 24 characters inclusive, not bytes, not codepoints
+    let p = parse_pattern("{name:camelCase(10-24)}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::CamelCase,
+                quant: Quant::Range { min: 10, max: 24 },
+            })
+        }]
+    );
+}
+
+#[test]
+fn placeholder_limiter_camelcase_quant_at_least() {
+    // at least 10 characters, not bytes, not codepoints
+    let p = parse_pattern("{name:camelCase(10+)}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::CamelCase,
+                quant: Quant::AtLeast(10),
+            })
+        }]
+    );
+}
+
 // PascalCase,
 #[test]
 fn placeholder_quant_type_pascalcase() {
