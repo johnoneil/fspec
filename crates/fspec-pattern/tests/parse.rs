@@ -121,8 +121,38 @@ fn parses_placeholder_with_limiter_no_quant_defaults_to_any() {
 }
 
 #[test]
+fn parses_placeholder_with_limiter_allow_whitespace() {
+    let p = parse_pattern("{ name :  camelCase   }").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::CamelCase,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
+#[test]
 fn parses_placeholder_with_exact_quant() {
     let p = parse_pattern("{year:int(4)}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "year".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::Int,
+                quant: Quant::Exactly(4)
+            })
+        }]
+    );
+}
+
+#[test]
+fn parses_placeholder_with_exact_quant_with_whitespace() {
+    let p = parse_pattern("{year :int( 4 )}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::Placeholder {
@@ -148,6 +178,28 @@ fn parses_placeholder_with_at_least_quant() {
             })
         }]
     );
+}
+
+#[test]
+fn parses_placeholder_with_at_least_quant_with_whitespace() {
+    let p = parse_pattern("{ id:int( 3+ ) }").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "id".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::Int,
+                quant: Quant::AtLeast(3)
+            })
+        }]
+    );
+}
+
+#[ignore = "should we allow this case? I'm not sure."]
+#[test]
+fn parses_placeholder_with_at_least_quant_error_on_space() {
+    // no space between 3 and +
+    assert!(parse_pattern("{ id:int( 3 + ) }").is_err());
 }
 
 #[test]
@@ -180,20 +232,31 @@ fn parses_placeholder_with_range_quant_no_whitespace() {
     );
 }
 
-// #[test]
-// fn parses_placeholder_with_range_quant_incorrect_range() {
-//     let p = parse_pattern("{id:int(2_5)}").unwrap();
-//     assert_eq!(
-//         p.nodes,
-//         vec![Node::Placeholder {
-//             name: "id".into(),
-//             limiter: Some(Limiter {
-//                 kind: LimiterKind::Int,
-//                 quant: Quant::Range { min: 2, max: 5 }
-//             })
-//         }]
-//     );
-// }
+#[ignore = "Should we allow this case? I'm not sure"]
+#[test]
+fn parses_placeholder_with_range_quant_error_whitespace() {
+    assert!(parse_pattern("{id:int( 2 - 5 )}").is_err());
+}
+
+#[test]
+fn parses_placeholder_with_range_quant_incorrect_range() {
+    assert!(parse_pattern("{id:int(2_5)}").is_err());
+}
+
+#[test]
+fn parses_placeholder_with_range_quant_error_incomplete_range_1() {
+    assert!(parse_pattern("{id:int(2-)}").is_err());
+}
+
+#[test]
+fn parses_placeholder_with_range_quant_error_incomplete_range_2() {
+    assert!(parse_pattern("{id:int(-5)}").is_err());
+}
+
+#[test]
+fn parses_placeholder_with_range_quant_error_nonsense() {
+    assert!(parse_pattern("{id:int(&(Kkjhksjd26)}").is_err());
+}
 
 #[test]
 fn parses_multiple_placeholders_mixed_with_literals() {
@@ -281,4 +344,132 @@ fn error_on_placeholder_with_space() {
 fn placeholder_identifier_allows_underscores_and_digits() {
     let p = parse_pattern("{valid_name_123}").unwrap();
     assert_eq!(p.nodes.len(), 1);
+}
+
+// Int,
+#[test]
+fn placeholder_quant_type_int() {
+    let p = parse_pattern("{name:int}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::Int,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
+// Semver,
+#[test]
+fn placeholder_quant_type_semver() {
+    let p = parse_pattern("{name:semver}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::Semver,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
+// CamelCase,
+#[test]
+fn placeholder_quant_type_camelcase() {
+    let p = parse_pattern("{name:camelCase}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::CamelCase,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
+// PascalCase,
+#[test]
+fn placeholder_quant_type_pascalcase() {
+    let p = parse_pattern("{name:PascalCase}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::PascalCase,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
+// SnakeCase,
+#[test]
+fn placeholder_quant_type_snakecase() {
+    let p = parse_pattern("{name:snake_case}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::SnakeCase,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
+// KebabCase,
+#[test]
+fn placeholder_quant_type_kebabcase() {
+    let p = parse_pattern("{name:kebab-case}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::KebabCase,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
+// FlatCase,
+#[test]
+fn placeholder_quant_type_flatcase() {
+    let p = parse_pattern("{name:flatcase}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::FlatCase,
+                quant: Quant::Any
+            })
+        }]
+    );
+}
+
+// UpperCase,
+#[test]
+fn placeholder_quant_type_uppercase() {
+    let p = parse_pattern("{name:UPPERCASE}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::Placeholder {
+            name: "name".into(),
+            limiter: Some(Limiter {
+                kind: LimiterKind::UpperCase,
+                quant: Quant::Any
+            })
+        }]
+    );
 }

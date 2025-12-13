@@ -39,6 +39,8 @@ limiter_kind = @{
     | "kebab_case" | "kebab-case"
     | "camel_case" | "camelCase"
     | "pascal_case" | "PascalCase"
+    | "flat_case" | "flatcase"
+    | "upper_case" | "UPPERCASE"
 }
 
 // Optional “( … )” arguments: either a quant or a set.

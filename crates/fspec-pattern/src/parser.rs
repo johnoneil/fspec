@@ -13,6 +13,7 @@ fn parse_limiter_kind(s: &str) -> Result<LimiterKind, ParseError> {
 
     let kind = match s {
         "int" => Int,
+
         "semver" => Semver,
 
         "snake_case" => SnakeCase,
@@ -22,6 +23,10 @@ fn parse_limiter_kind(s: &str) -> Result<LimiterKind, ParseError> {
         "camel_case" | "camelCase" => CamelCase,
 
         "pascal_case" | "PascalCase" => PascalCase,
+
+        "flat_case" | "flatcase" => FlatCase,
+
+        "upper_case" | "UPPERCASE" => UpperCase,
 
         _ => {
             return Err(ParseError::new(format!("unknown limiter kind: {s}")));
