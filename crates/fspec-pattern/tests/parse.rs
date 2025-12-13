@@ -1,4 +1,4 @@
-use fspec_pattern::{Limiter, Node, parse_pattern};
+use fspec_pattern::{Limiter, LimiterKind, Node, Quant, parse_pattern};
 
 #[test]
 fn parses_simple_path() {
@@ -42,7 +42,10 @@ fn parses_multiple_placeholders() {
             Node::Slash,
             Node::Placeholder {
                 name: "name".into(),
-                limiter: Some(Limiter::CamelCase)
+                limiter: Some(Limiter {
+                    kind: LimiterKind::CamelCase,
+                    quant: Quant::Any
+                }),
             },
             Node::Literal("_".into()),
             Node::Placeholder {
