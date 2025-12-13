@@ -1,0 +1,74 @@
+// ---- Top level ----
+
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+
+pattern     = { SOI ~ node* ~ EOI }
+
+node        = _{ globstar | slash | placeholder | literal }
+
+// ---- Nodes ----
+
+// Treat "/" as its own node (matches your AST)
+slash       = { "/" }
+
+// "**" becomes GlobStar
+globstar    = { "**" }
+
+// "{name[:limiter]?}" becomes Placeholder
+placeholder = { "{" ~ ident ~ (":" ~ limiter)? ~ "}" }
+
+// Everything else is a Literal chunk.
+// We chunk literals so you can merge consecutive Literal nodes easily.
+literal     = { literal_piece+ }
+
+// ---- Identifiers ----
+
+// Keep this strict to make errors crisp and to match your unit tests.
+// (No spaces; starts with alpha/_; continues alnum/_)
+ident       = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+
+// ---- Limiters ----
+
+limiter     = { limiter_kind ~ limiter_args? }
+
+// Map these names to your LimiterKind enum in Rust.
+limiter_kind = @{
+      "int"
+    | "semver"
+    | "snake_case"
+    | "kebab_case" | "kebab-case"
+    | "camel_case" | "camelCase"
+    | "pascal_case" | "PascalCase"
+}
+
+// Optional “( … )” arguments: either a quant or a set.
+//limiter_args = { "(" ~ (quant | set_items) ~ ")" }
+limiter_args = { "(" ~ WHITESPACE* ~ (quant | set_items) ~ WHITESPACE* ~ ")" }
+
+// Quantifiers: exactly, at-least, range, any
+quant       = { range | at_least | exactly | any }
+
+exactly     = { number }            // (4)
+at_least    = { number ~ "+" }      // (2+)
+range       = { number ~ "-" ~ number } // (3-5)
+any         = { "*" }               // (*)
+
+// Example: oneof style, e.g. (mp4,mov,mkv)
+// (If you prefer `{mp4,mov}` without a limiter kind, see note below.)
+set_items   = { ident ~ ("," ~ ident)* }
+
+// ---- Lexical helpers ----
+
+number      = @{ ASCII_DIGIT+ }
+
+// literal_piece is either an escaped char or any char that doesn’t start a special token.
+// We exclude '/', '{', and the start of "**" to avoid ambiguity.
+literal_piece = _{
+      escape
+    | (!special ~ ANY)
+}
+
+//special     = _{ "/" | "{" | "*" } // '*' is special because of globstar "**"
+special = _{ "/" | "{" | "}" | "*" }
+
+escape      = { "\\" ~ ANY }
