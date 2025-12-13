@@ -4,7 +4,6 @@ mod error;
 mod parser;
 
 use crate::error::ParseError;
-//use chumsky::Parser;
 
 pub use ast::{Limiter, LimiterKind, Node, Pattern, Quant};
 

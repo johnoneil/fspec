@@ -3,4 +3,3 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.dependencies]
-chumsky = "0.9"
