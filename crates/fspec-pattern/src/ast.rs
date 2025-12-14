@@ -29,9 +29,12 @@ pub enum Node {
     Literal(String),
     Slash,
     GlobStar,
-    Placeholder {
+    NamedPlaceholder {
         name: String,
         limiter: Option<Limiter>,
+    },
+    AnonymousPlaceholder {
+        limiter: Limiter,
     },
 }
 

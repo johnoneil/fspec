@@ -4,7 +4,10 @@
 
 ## up next
 
-* BIG QUESTION: allow a kind of regex as a limiter? ultimately all limiters will boil down to a regex, but do we allow it directly? getting one inside the grammar could be tough without putting it in quotes or something.
+* BIG QUESTION: I think placeholders should have a name (tag) or a limiter, or both. we should be able to drop the name if it won't be referred to elsewhere. but no limiter and no tag is meaningless.
+* additionally, a globstar as a kind of limiter (or single star glob) should be allowed.
+* and a pure regex as a limiter (expressed in some way, in quotes?) should be acceptable.
+* and multiple limiters on a placeholder should be... supported??? I don't know. Interactions between limiters are tough to guess.
 
 # next
 
@@ -13,6 +16,18 @@
 `/**` -> globstar.
 
 `/**/` -> globstar
+
+allow this? `/**(3)/` -> glob exactly 3 directories deep?
+alow this? `/**(3+)/` -> glob 3 or more directories deep?
+allow this? `/**(3-5)/` -> glob between 3 and 5 directories deep? that is 1, 2 and 6+ don't apply.
+Is a globstar a limiter without a tag? allow `/{glob:**(3)}` or `/{**(3)}` ?
+allow `/{int(3)}/` ? (placeholders with just limiters, not tags?)
+
+so... allow unnamed placeholders?
+allow globs as placeholders?
+allow limiters outside of placeholders (implied placeholder?) `/int(3)` or `/camelCase/` ?
+allow spaces around placeholders and not have them be literals? `/ {placeholder_surrounded_by_spaces} /` ?
+
 
 `/** /` -> error badly? allow this for readability like `/ ** /` ? or `dir/ ** /file.txt`
 

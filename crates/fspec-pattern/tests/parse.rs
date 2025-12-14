@@ -9,7 +9,7 @@ fn parses_simple_path() {
         vec![
             Node::Literal("movies".into()),
             Node::Slash,
-            Node::Placeholder {
+            Node::NamedPlaceholder {
                 name: "year".into(),
                 limiter: None
             },
@@ -41,12 +41,12 @@ fn parses_multiple_placeholders() {
         vec![
             Node::Literal("movies".into()),
             Node::Slash,
-            Node::Placeholder {
+            Node::NamedPlaceholder {
                 name: "year".into(),
                 limiter: None
             },
             Node::Slash,
-            Node::Placeholder {
+            Node::NamedPlaceholder {
                 name: "name".into(),
                 limiter: Some(Limiter {
                     kind: LimiterKind::CamelCase,
@@ -54,7 +54,7 @@ fn parses_multiple_placeholders() {
                 }),
             },
             Node::Literal("_".into()),
-            Node::Placeholder {
+            Node::NamedPlaceholder {
                 name: "year".into(),
                 limiter: None
             },
@@ -125,7 +125,7 @@ fn parses_placeholder_without_limiter() {
     let p = parse_pattern("{year}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "year".into(),
             limiter: None
         }]
@@ -147,7 +147,7 @@ fn parses_placeholder_with_limiter_no_quant_defaults_to_any() {
     let p = parse_pattern("{name:camelCase}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::CamelCase,
@@ -162,7 +162,7 @@ fn parses_placeholder_with_limiter_allow_whitespace() {
     let p = parse_pattern("{ name :  camelCase   }").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::CamelCase,
@@ -177,7 +177,7 @@ fn parses_placeholder_with_exact_quant() {
     let p = parse_pattern("{year:int(4)}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "year".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::Int,
@@ -192,7 +192,7 @@ fn parses_placeholder_with_exact_quant_with_whitespace() {
     let p = parse_pattern("{year :int( 4 )}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "year".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::Int,
@@ -207,7 +207,7 @@ fn parses_placeholder_with_at_least_quant() {
     let p = parse_pattern("{id:int(3+)}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "id".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::Int,
@@ -222,7 +222,7 @@ fn parses_placeholder_with_at_least_quant_tolerable_weird_space() {
     let p = parse_pattern("{id:int(3 +)}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "id".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::Int,
@@ -237,7 +237,7 @@ fn parses_placeholder_with_at_least_quant_with_whitespace() {
     let p = parse_pattern("{ id:int( 3+ ) }").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "id".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::Int,
@@ -252,7 +252,7 @@ fn parses_placeholder_with_range_quant_and_whitespace() {
     let p = parse_pattern("{id:int( 2-5 )}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "id".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::Int,
@@ -267,7 +267,7 @@ fn parses_placeholder_with_range_quant_no_whitespace() {
     let p = parse_pattern("{id:int(2-5)}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "id".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::Int,
@@ -282,7 +282,7 @@ fn parses_placeholder_with_range_quant_and_tolerable_weird_whitespace() {
     let p = parse_pattern("{id:int(2 -5)}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "id".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::Int,
@@ -320,12 +320,12 @@ fn parses_multiple_placeholders_mixed_with_literals() {
         vec![
             Node::Literal("movies".into()),
             Node::Slash,
-            Node::Placeholder {
+            Node::NamedPlaceholder {
                 name: "year".into(),
                 limiter: None
             },
             Node::Slash,
-            Node::Placeholder {
+            Node::NamedPlaceholder {
                 name: "name".into(),
                 limiter: Some(Limiter {
                     kind: LimiterKind::CamelCase,
@@ -333,7 +333,7 @@ fn parses_multiple_placeholders_mixed_with_literals() {
                 })
             },
             Node::Literal("_".into()),
-            Node::Placeholder {
+            Node::NamedPlaceholder {
                 name: "year".into(),
                 limiter: None
             },
@@ -406,7 +406,7 @@ fn placeholder_quant_type_int() {
     let p = parse_pattern("{name:int}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::Int,
@@ -422,7 +422,7 @@ fn placeholder_quant_type_semver() {
     let p = parse_pattern("{name:semver}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::Semver,
@@ -438,7 +438,7 @@ fn placeholder_quant_type_camelcase() {
     let p = parse_pattern("{name:camelCase}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::CamelCase,
@@ -453,7 +453,7 @@ fn placeholder_quant_type_camelcase_2() {
     let p = parse_pattern("{name:camel_case}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::CamelCase,
@@ -469,7 +469,7 @@ fn placeholder_limiter_camelcase_quant_specific() {
     let p = parse_pattern("{name:camelCase(24)}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::CamelCase,
@@ -485,7 +485,7 @@ fn placeholder_limiter_camelcase_quant_range() {
     let p = parse_pattern("{name:camelCase(10-24)}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::CamelCase,
@@ -501,7 +501,7 @@ fn placeholder_limiter_camelcase_quant_at_least() {
     let p = parse_pattern("{name:camelCase(10+)}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::CamelCase,
@@ -517,7 +517,7 @@ fn placeholder_quant_type_pascalcase() {
     let p = parse_pattern("{name:PascalCase}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::PascalCase,
@@ -533,7 +533,7 @@ fn placeholder_quant_type_pascalcase_2() {
     let p = parse_pattern("{name:pascal_case}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::PascalCase,
@@ -549,7 +549,7 @@ fn placeholder_quant_type_snakecase() {
     let p = parse_pattern("{name:snake_case}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::SnakeCase,
@@ -565,7 +565,7 @@ fn placeholder_quant_type_kebabcase() {
     let p = parse_pattern("{name:kebab-case}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::KebabCase,
@@ -581,7 +581,7 @@ fn placeholder_quant_type_kebabcase_2() {
     let p = parse_pattern("{name:kebab_case}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::KebabCase,
@@ -597,7 +597,7 @@ fn placeholder_quant_type_flatcase() {
     let p = parse_pattern("{name:flatcase}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::FlatCase,
@@ -612,7 +612,7 @@ fn placeholder_quant_type_flatcase_2() {
     let p = parse_pattern("{name:flat_case}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::FlatCase,
@@ -628,7 +628,7 @@ fn placeholder_quant_type_uppercase() {
     let p = parse_pattern("{name:UPPER_CASE}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::UpperCase,
@@ -643,7 +643,7 @@ fn placeholder_quant_type_uppercase_2() {
     let p = parse_pattern("{name:upper_case}").unwrap();
     assert_eq!(
         p.nodes,
-        vec![Node::Placeholder {
+        vec![Node::NamedPlaceholder {
             name: "name".into(),
             limiter: Some(Limiter {
                 kind: LimiterKind::UpperCase,

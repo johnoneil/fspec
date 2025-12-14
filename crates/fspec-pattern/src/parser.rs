@@ -136,7 +136,7 @@ pub fn parse_pattern(input: &str) -> Result<Pattern, ParseError> {
         match pair.as_rule() {
             Rule::slash => nodes.push(Node::Slash),
             Rule::globstar => nodes.push(Node::GlobStar),
-            Rule::placeholder => nodes.push(parse_placeholder(pair)?),
+            Rule::named_placeholder => nodes.push(parse_named_placeholder(pair)?),
             Rule::literal => nodes.push(Node::Literal(unescape_literal(pair.as_str()))),
             _ => {}
         }
@@ -154,7 +154,7 @@ pub fn parse_pattern(input: &str) -> Result<Pattern, ParseError> {
     Ok(Pattern { nodes: merged })
 }
 
-fn parse_placeholder(pair: Pair<Rule>) -> Result<Node, ParseError> {
+fn parse_named_placeholder(pair: Pair<Rule>) -> Result<Node, ParseError> {
     let mut inner = pair.into_inner();
     let name = inner.next().unwrap().as_str().to_string();
 
@@ -165,7 +165,7 @@ fn parse_placeholder(pair: Pair<Rule>) -> Result<Node, ParseError> {
         None
     };
 
-    Ok(Node::Placeholder { name, limiter })
+    Ok(Node::NamedPlaceholder { name, limiter })
 }
 
 fn parse_quant(pair: Pair<Rule>) -> Result<Quant, ParseError> {
