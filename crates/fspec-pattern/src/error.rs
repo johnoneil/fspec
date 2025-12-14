@@ -9,7 +9,7 @@ impl ParseError {
         // TODO: what should index be?
         ParseError {
             index: 1,
-            message: literal.into(),
+            message: literal,
         }
     }
 }

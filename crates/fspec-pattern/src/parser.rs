@@ -331,54 +331,6 @@ fn parse_anonymous_placeholder_part(pair: Pair<Rule>) -> Result<SegPart, ParseEr
     Ok(SegPart::AnonymousPlaceholder { limiter })
 }
 
-// fn parse_placeholder(pair: Pair<Rule>) -> Result<Node, ParseError> {
-//     match pair.as_rule() {
-//         Rule::named_placeholder => parse_named_placeholder(pair),
-//         Rule::anonymous_placeholder => parse_anonymous_placeholder(pair),
-//         Rule::placeholder => {
-//             // wrapper: it should contain exactly one inner pair,
-//             // either named_placeholder or anonymous_placeholder
-//             let inner = pair
-//                 .into_inner()
-//                 .next()
-//                 .ok_or_else(|| ParseError::new("empty placeholder".into()))?;
-//             parse_placeholder(inner)
-//         }
-//         _ => Err(ParseError::new("expected placeholder".into())),
-//     }
-// }
-
-// fn parse_named_placeholder(pair: Pair<Rule>) -> Result<Node, ParseError> {
-//     let mut inner = pair.into_inner();
-//     let name = inner.next().unwrap().as_str().to_string();
-
-//     let limiter = if let Some(next) = inner.next() {
-//         // next is the limiter (because ":" is a literal token in the grammar)
-//         Some(parse_limiter_call(next)?)
-//     } else {
-//         None
-//     };
-
-//     Ok(Node::NamedPlaceholder { name, limiter })
-// }
-
-// fn parse_anonymous_placeholder(pair: Pair<Rule>) -> Result<Node, ParseError> {
-//     debug_assert_eq!(pair.as_rule(), Rule::anonymous_placeholder);
-
-//     let mut inner = pair.into_inner();
-
-//     let limiter_call = inner
-//         .next()
-//         .ok_or_else(|| ParseError::new("anonymous placeholder missing limiter".into()))?;
-
-//     // Optionally sanity-check there isn't extra stuff:
-//     // if inner.next().is_some() { return Err(ParseError::new("unexpected tokens in anonymous placeholder")); }
-
-//     let limiter = parse_limiter(limiter_call)?;
-
-//     Ok(Node::AnonymousPlaceholder { limiter })
-// }
-
 fn parse_quant(pair: Pair<Rule>) -> Result<Quant, ParseError> {
     // pair is Rule::quant, inner is one of: range | at_least | exactly | any
     let inner = pair
@@ -387,20 +339,4 @@ fn parse_quant(pair: Pair<Rule>) -> Result<Quant, ParseError> {
         .ok_or_else(|| ParseError::new("empty quant".into()))?;
 
     parse_quant_leaf(inner)
-}
-
-fn unescape_literal(s: &str) -> String {
-    // turns "\{" into "{" etc. Keep it simple initially.
-    let mut out = String::with_capacity(s.len());
-    let mut it = s.chars();
-    while let Some(c) = it.next() {
-        if c == '\\' {
-            if let Some(next) = it.next() {
-                out.push(next);
-            }
-        } else {
-            out.push(c);
-        }
-    }
-    out
 }

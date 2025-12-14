@@ -12,7 +12,7 @@ WS = _{ " " | "\t" | "\r" | "\n" }
 // Treat "/" as its own node (matches your AST)
 slash       = { "/" }
 
-// "**" becomes GlobStar segmnt.
+// "**" becomes GlobStar segment.
 globstar_segment    = { "**" }
 
 // "*" becomes star segment.
@@ -40,7 +40,6 @@ literal     = { literal_piece+ }
 // ---- Identifiers ----
 
 // Keep this strict to make errors crisp and to match your unit tests.
-// (No spaces; starts with alpha/_; continues alnum/_)
 ident       = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
 
 //ident = @{ ASCII_ALPHA_LOWER ~ (ASCII_LOWER | ASCII_DIGIT | "_")* }

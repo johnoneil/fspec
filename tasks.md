@@ -5,7 +5,7 @@
 enforce ** only as a whole segment
 add . and .. as whole segments
 decide what to do with lone * (I’d do whole-segment-only first)
-caping for braces ({{ / }})
+escaping for braces ({{ / }})
 This prevents “I literally need a brace in a filename” edge cases from becoming impossible.~~
 
 Raw regex limiter (re("..."))

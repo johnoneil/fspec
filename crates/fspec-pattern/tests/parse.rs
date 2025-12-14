@@ -145,6 +145,42 @@ fn parses_globstar() {
     );
 }
 
+#[ignore = "What's the correct behavior here? we currently get a globstar then a ' ' literal."]
+#[test]
+fn parses_globstar_space_after() {
+    let p = parse_pattern("root/** /file.txt").unwrap();
+    //debug:
+    println!("{:#?}", parse_pattern("root/** /file.txt"));
+    assert_eq!(
+        p.nodes,
+        vec![
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("root".into()),])),
+            Node::Slash,
+            Node::Segment(Segment::GlobStar),
+            Node::Slash,
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("file.txt".into()),])),
+        ]
+    );
+}
+
+#[ignore = "What's the correct behavior here? We currently get a single literal ' **'"]
+#[test]
+fn parses_globstar_space_before() {
+    let p = parse_pattern("root/ **/file.txt").unwrap();
+    //debug:
+    println!("{:#?}", parse_pattern("root/ **/file.txt"));
+    assert_eq!(
+        p.nodes,
+        vec![
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("root".into()),])),
+            Node::Slash,
+            Node::Segment(Segment::GlobStar),
+            Node::Slash,
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("file.txt".into()),])),
+        ]
+    );
+}
+
 #[test]
 fn parses_dot() {
     let p = parse_pattern("root/./file.txt").unwrap();
@@ -175,9 +211,45 @@ fn parses_doubledot() {
     );
 }
 
+#[ignore = "what is the behavior here? Currently we get a literal ' ..' "]
+#[test]
+fn parses_doubledot_with_space() {
+    let p = parse_pattern("root/ ../file.txt").unwrap();
+    //debug:
+    println!("{:#?}", parse_pattern("root/ ../file.txt"));
+    assert_eq!(
+        p.nodes,
+        vec![
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("root".into()),])),
+            Node::Slash,
+            Node::Segment(Segment::DotDot),
+            Node::Slash,
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("file.txt".into()),])),
+        ]
+    );
+}
+
 #[test]
 fn parses_star() {
     let p = parse_pattern("root/*/file.txt").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("root".into()),])),
+            Node::Slash,
+            Node::Segment(Segment::Star),
+            Node::Slash,
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("file.txt".into()),])),
+        ]
+    );
+}
+
+#[ignore = "what should this behavior be? We currently get a literal ' ' (space) and no star."]
+#[test]
+fn parses_star_with_space() {
+    let p = parse_pattern("root/* /file.txt").unwrap();
+    // DEBUG:
+    println!("{:#?}", parse_pattern("root/* /file.txt"));
     assert_eq!(
         p.nodes,
         vec![
