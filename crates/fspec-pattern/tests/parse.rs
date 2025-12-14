@@ -146,6 +146,51 @@ fn parses_globstar() {
 }
 
 #[test]
+fn parses_dot() {
+    let p = parse_pattern("root/./file.txt").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("root".into()),])),
+            Node::Slash,
+            Node::Segment(Segment::Dot),
+            Node::Slash,
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("file.txt".into()),])),
+        ]
+    );
+}
+
+#[test]
+fn parses_doubledot() {
+    let p = parse_pattern("root/../file.txt").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("root".into()),])),
+            Node::Slash,
+            Node::Segment(Segment::DotDot),
+            Node::Slash,
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("file.txt".into()),])),
+        ]
+    );
+}
+
+#[test]
+fn parses_star() {
+    let p = parse_pattern("root/*/file.txt").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("root".into()),])),
+            Node::Slash,
+            Node::Segment(Segment::Star),
+            Node::Slash,
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("file.txt".into()),])),
+        ]
+    );
+}
+
+#[test]
 fn parses_placeholder_without_limiter() {
     let p = parse_pattern("{year}").unwrap();
     assert_eq!(
