@@ -3,17 +3,26 @@
 number = @{ ASCII_DIGIT+ }
 WS = _{ " " | "\t" | "\r" | "\n" }
 
-pattern     = { SOI ~ node* ~ EOI }
+// pattern     = { SOI ~ node* ~ EOI }
 
-node        = _{ globstar | slash | placeholder | literal }
+// node        = _{ globstar | slash | placeholder | literal }
 
 // ---- Nodes ----
 
 // Treat "/" as its own node (matches your AST)
 slash       = { "/" }
 
-// "**" becomes GlobStar
-globstar    = { "**" }
+// "**" becomes GlobStar segmnt.
+globstar_segment    = { "**" }
+
+// "*" becomes star segment.
+star_segment = { "*" }
+
+// "." becomes dot segment.
+dot_segment = { "." }
+
+// ".." becomes dotdot segment.
+dotdot_segment = { ".." }
 
 // "{name[:limiter]?}" becomes a named placeholder, the limiter is optional
 named_placeholder = { "{" ~ WS* ~ ident ~ WS* ~ (":" ~ WS* ~ limiter_call)? ~ WS* ~ "}" }
@@ -33,6 +42,8 @@ literal     = { literal_piece+ }
 // Keep this strict to make errors crisp and to match your unit tests.
 // (No spaces; starts with alpha/_; continues alnum/_)
 ident       = @{ (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")* }
+
+//ident = @{ ASCII_ALPHA_LOWER ~ (ASCII_LOWER | ASCII_DIGIT | "_")* }
 
 // ---- Limiters ----
 
@@ -80,12 +91,23 @@ set_items   = { ident ~ ("," ~ ident)* }
 
 // literal_piece is either an escaped char or any char that doesn’t start a special token.
 // We exclude '/', '{', and the start of "**" to avoid ambiguity.
-literal_piece = _{
-      escape
-    | (!special ~ ANY)
-}
+literal_piece = { (!("/" | "{") ~ ANY)+ }
 
 //special     = _{ "/" | "{" | "*" } // '*' is special because of globstar "**"
 special = _{ "/" | "{" | "}" | "*" }
 
 escape      = { "\\" ~ ANY }
+
+soi = { SOI }
+eoi = { EOI }
+
+//pattern = { (slash | segment)* }    // or SOI/EOI wrapped
+//pattern = { SOI ~ (slash | segment)* ~ EOI }
+pattern = { soi ~ (slash | segment)* ~ eoi }
+
+segment_node = { slash | segment }
+
+segment = { path_segment } // no need for “| parts_segment” because path_segment already includes it
+
+parts_segment = { (literal_piece | placeholder)+ }
+path_segment  = { globstar_segment | dotdot_segment | dot_segment | star_segment | parts_segment }

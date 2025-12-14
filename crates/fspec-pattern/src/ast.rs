@@ -25,10 +25,31 @@ pub struct Limiter {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Pattern {
+    pub nodes: Vec<Node>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Node {
-    Literal(String),
     Slash,
+    Segment(Segment),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Segment {
+    // whole-segment tokens
     GlobStar,
+    Star,
+    Dot,
+    DotDot,
+
+    // normal segment contents
+    Parts(Vec<SegPart>),
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SegPart {
+    Literal(String),
     NamedPlaceholder {
         name: String,
         limiter: Option<Limiter>,
@@ -36,9 +57,4 @@ pub enum Node {
     AnonymousPlaceholder {
         limiter: Limiter,
     },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Pattern {
-    pub nodes: Vec<Node>,
 }
