@@ -136,7 +136,7 @@ pub fn parse_pattern(input: &str) -> Result<Pattern, ParseError> {
         match pair.as_rule() {
             Rule::slash => nodes.push(Node::Slash),
             Rule::globstar => nodes.push(Node::GlobStar),
-            Rule::named_placeholder => nodes.push(parse_named_placeholder(pair)?),
+            Rule::placeholder => nodes.push(parse_placeholder(pair)?),
             Rule::literal => nodes.push(Node::Literal(unescape_literal(pair.as_str()))),
             _ => {}
         }
@@ -154,6 +154,23 @@ pub fn parse_pattern(input: &str) -> Result<Pattern, ParseError> {
     Ok(Pattern { nodes: merged })
 }
 
+fn parse_placeholder(pair: Pair<Rule>) -> Result<Node, ParseError> {
+    match pair.as_rule() {
+        Rule::named_placeholder => parse_named_placeholder(pair),
+        Rule::anonymous_placeholder => parse_anonymous_placeholder(pair),
+        Rule::placeholder => {
+            // wrapper: it should contain exactly one inner pair,
+            // either named_placeholder or anonymous_placeholder
+            let inner = pair
+                .into_inner()
+                .next()
+                .ok_or_else(|| ParseError::new("empty placeholder".into()))?;
+            parse_placeholder(inner)
+        }
+        _ => Err(ParseError::new("expected placeholder".into())),
+    }
+}
+
 fn parse_named_placeholder(pair: Pair<Rule>) -> Result<Node, ParseError> {
     let mut inner = pair.into_inner();
     let name = inner.next().unwrap().as_str().to_string();
@@ -166,6 +183,23 @@ fn parse_named_placeholder(pair: Pair<Rule>) -> Result<Node, ParseError> {
     };
 
     Ok(Node::NamedPlaceholder { name, limiter })
+}
+
+fn parse_anonymous_placeholder(pair: Pair<Rule>) -> Result<Node, ParseError> {
+    debug_assert_eq!(pair.as_rule(), Rule::anonymous_placeholder);
+
+    let mut inner = pair.into_inner();
+
+    let limiter_call = inner
+        .next()
+        .ok_or_else(|| ParseError::new("anonymous placeholder missing limiter".into()))?;
+
+    // Optionally sanity-check there isn't extra stuff:
+    // if inner.next().is_some() { return Err(ParseError::new("unexpected tokens in anonymous placeholder")); }
+
+    let limiter = parse_limiter(limiter_call)?;
+
+    Ok(Node::AnonymousPlaceholder { limiter })
 }
 
 fn parse_quant(pair: Pair<Rule>) -> Result<Quant, ParseError> {

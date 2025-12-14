@@ -653,3 +653,243 @@ fn placeholder_quant_type_uppercase_2() {
         }]
     );
 }
+
+// anonymous placeholders
+// START BECAUSE VSCODE DIFF IS TRYING TO BE CLEVER
+
+// Int,
+#[test]
+fn anon_placeholder_quant_type_int() {
+    let p = parse_pattern("{int()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::Int,
+                quant: Quant::Any
+            }
+        }]
+    );
+}
+
+// Semver,
+#[test]
+fn anon_placeholder_quant_type_semver() {
+    let p = parse_pattern("{semver()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::Semver,
+                quant: Quant::Any
+            }
+        }]
+    );
+}
+
+// CamelCase,
+#[test]
+fn anon_placeholder_quant_type_camelcase() {
+    let p = parse_pattern("{camelCase()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::CamelCase,
+                quant: Quant::Any
+            }
+        }]
+    );
+}
+
+#[test]
+fn anon_placeholder_quant_type_camelcase_2() {
+    let p = parse_pattern("{camel_case()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::CamelCase,
+                quant: Quant::Any
+            }
+        }]
+    );
+}
+
+#[test]
+fn anon_placeholder_limiter_camelcase_quant_specific() {
+    // exactly 24 chars, not bytes, not codepoints
+    let p = parse_pattern("{camelCase(24)}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::CamelCase,
+                quant: Quant::Exactly(24)
+            }
+        }]
+    );
+}
+
+#[test]
+fn anon_placeholder_limiter_camelcase_quant_range() {
+    // between 10 and 24 characters inclusive, not bytes, not codepoints
+    let p = parse_pattern("{camelCase(10-24)}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::CamelCase,
+                quant: Quant::Range { min: 10, max: 24 }
+            }
+        }]
+    );
+}
+
+#[test]
+fn anon_placeholder_limiter_camelcase_quant_at_least() {
+    // at least 10 characters, not bytes, not codepoints
+    let p = parse_pattern("{camelCase(10+)}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::CamelCase,
+                quant: Quant::AtLeast(10)
+            }
+        }]
+    );
+}
+
+// PascalCase,
+#[test]
+fn anon_placeholder_quant_type_pascalcase() {
+    let p = parse_pattern("{PascalCase()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::PascalCase,
+                quant: Quant::Any
+            }
+        }]
+    );
+}
+
+// PascalCase,
+#[test]
+fn anon_placeholder_quant_type_pascalcase_2() {
+    let p = parse_pattern("{pascal_case()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::PascalCase,
+                quant: Quant::Any
+            }
+        }]
+    );
+}
+
+// SnakeCase,
+#[test]
+fn anon_placeholder_quant_type_snakecase() {
+    let p = parse_pattern("{snake_case()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::SnakeCase,
+                quant: Quant::Any
+            }
+        }]
+    );
+}
+
+// KebabCase,
+#[test]
+fn anon_placeholder_quant_type_kebabcase() {
+    let p = parse_pattern("{kebab-case()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::KebabCase,
+                quant: Quant::Any
+            }
+        }]
+    );
+}
+
+// KebabCase,
+#[test]
+fn anon_placeholder_quant_type_kebabcase_2() {
+    let p = parse_pattern("{kebab_case()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::KebabCase,
+                quant: Quant::Any
+            }
+        }]
+    );
+}
+
+// FlatCase,
+#[test]
+fn anon_placeholder_quant_type_flatcase() {
+    let p = parse_pattern("{flatcase()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::FlatCase,
+                quant: Quant::Any
+            }
+        }]
+    );
+}
+
+#[test]
+fn anon_placeholder_quant_type_flatcase_2() {
+    let p = parse_pattern("{flat_case()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::FlatCase,
+                quant: Quant::Any
+            }
+        }]
+    );
+}
+
+// UpperCase,
+#[test]
+fn anon_placeholder_quant_type_uppercase() {
+    let p = parse_pattern("{UPPER_CASE()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::UpperCase,
+                quant: Quant::Any
+            }
+        }]
+    );
+}
+
+#[test]
+fn anon_placeholder_quant_type_uppercase_2() {
+    let p = parse_pattern("{upper_case()}").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![Node::AnonymousPlaceholder {
+            limiter: Limiter {
+                kind: LimiterKind::UpperCase,
+                quant: Quant::Any
+            }
+        }]
+    );
+}

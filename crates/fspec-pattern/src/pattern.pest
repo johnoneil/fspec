@@ -5,7 +5,7 @@ WS = _{ " " | "\t" | "\r" | "\n" }
 
 pattern     = { SOI ~ node* ~ EOI }
 
-node        = _{ globstar | slash | named_placeholder | literal }
+node        = _{ globstar | slash | placeholder | literal }
 
 // ---- Nodes ----
 
@@ -15,8 +15,14 @@ slash       = { "/" }
 // "**" becomes GlobStar
 globstar    = { "**" }
 
-// "{name[:limiter]?}" becomes Placeholder
+// "{name[:limiter]?}" becomes a named placeholder, the limiter is optional
 named_placeholder = { "{" ~ WS* ~ ident ~ WS* ~ (":" ~ WS* ~ limiter_call)? ~ WS* ~ "}" }
+
+// "{limiter()}" is an anonymous placeholder. no name specified but legal"
+
+anonymous_placeholder = { "{" ~ WS* ~ limiter_call ~ WS* ~ "}" }
+
+placeholder = { anonymous_placeholder | named_placeholder }
 
 // Everything else is a Literal chunk.
 // We chunk literals so you can merge consecutive Literal nodes easily.
