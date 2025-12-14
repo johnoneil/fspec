@@ -34,7 +34,7 @@ fn parses_file_name_unicode() {
 
 #[test]
 fn parses_multiple_placeholders() {
-    let p = parse_pattern("movies/{year}/{name:camelCase}_{year}.mp4").unwrap();
+    let p = parse_pattern("movies/{year}/{name:camelCase()}_{year}.mp4").unwrap();
 
     assert_eq!(
         p.nodes,
@@ -144,7 +144,7 @@ fn parses_placeholder_without_limiter_error_illegal_characters_2() {
 
 #[test]
 fn parses_placeholder_with_limiter_no_quant_defaults_to_any() {
-    let p = parse_pattern("{name:camelCase}").unwrap();
+    let p = parse_pattern("{ name: camelCase () }").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -159,7 +159,7 @@ fn parses_placeholder_with_limiter_no_quant_defaults_to_any() {
 
 #[test]
 fn parses_placeholder_with_limiter_allow_whitespace() {
-    let p = parse_pattern("{ name :  camelCase   }").unwrap();
+    let p = parse_pattern("{ name :  camelCase (  )   }").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -314,7 +314,7 @@ fn parses_placeholder_with_range_quant_error_nonsense() {
 
 #[test]
 fn parses_multiple_placeholders_mixed_with_literals() {
-    let p = parse_pattern("movies/{year}/{name:camelCase}_{year}.mp4").unwrap();
+    let p = parse_pattern("movies/{year}/{name:camelCase()}_{year}.mp4").unwrap();
     assert_eq!(
         p.nodes,
         vec![
@@ -383,8 +383,9 @@ fn error_on_bad_quant_missing_close_paren() {
 
 #[test]
 fn error_on_bad_quant_missing_number() {
+    // We require limiters to have parentheses for now.
     // TODO: check error message
-    assert!(parse_pattern("{x:int()}").is_err());
+    assert!(parse_pattern("{x:int}").is_err());
 }
 
 #[test]
@@ -403,7 +404,7 @@ fn placeholder_identifier_allows_underscores_and_digits() {
 // Int,
 #[test]
 fn placeholder_quant_type_int() {
-    let p = parse_pattern("{name:int}").unwrap();
+    let p = parse_pattern("{name:int()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -419,7 +420,7 @@ fn placeholder_quant_type_int() {
 // Semver,
 #[test]
 fn placeholder_quant_type_semver() {
-    let p = parse_pattern("{name:semver}").unwrap();
+    let p = parse_pattern("{name:semver()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -435,7 +436,7 @@ fn placeholder_quant_type_semver() {
 // CamelCase,
 #[test]
 fn placeholder_quant_type_camelcase() {
-    let p = parse_pattern("{name:camelCase}").unwrap();
+    let p = parse_pattern("{name:camelCase()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -450,7 +451,7 @@ fn placeholder_quant_type_camelcase() {
 
 #[test]
 fn placeholder_quant_type_camelcase_2() {
-    let p = parse_pattern("{name:camel_case}").unwrap();
+    let p = parse_pattern("{name:camel_case()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -514,7 +515,7 @@ fn placeholder_limiter_camelcase_quant_at_least() {
 // PascalCase,
 #[test]
 fn placeholder_quant_type_pascalcase() {
-    let p = parse_pattern("{name:PascalCase}").unwrap();
+    let p = parse_pattern("{name:PascalCase()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -530,7 +531,7 @@ fn placeholder_quant_type_pascalcase() {
 // PascalCase,
 #[test]
 fn placeholder_quant_type_pascalcase_2() {
-    let p = parse_pattern("{name:pascal_case}").unwrap();
+    let p = parse_pattern("{name:pascal_case()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -546,7 +547,7 @@ fn placeholder_quant_type_pascalcase_2() {
 // SnakeCase,
 #[test]
 fn placeholder_quant_type_snakecase() {
-    let p = parse_pattern("{name:snake_case}").unwrap();
+    let p = parse_pattern("{name:snake_case()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -562,7 +563,7 @@ fn placeholder_quant_type_snakecase() {
 // KebabCase,
 #[test]
 fn placeholder_quant_type_kebabcase() {
-    let p = parse_pattern("{name:kebab-case}").unwrap();
+    let p = parse_pattern("{name:kebab-case()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -578,7 +579,7 @@ fn placeholder_quant_type_kebabcase() {
 // KebabCase,
 #[test]
 fn placeholder_quant_type_kebabcase_2() {
-    let p = parse_pattern("{name:kebab_case}").unwrap();
+    let p = parse_pattern("{name:kebab_case()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -594,7 +595,7 @@ fn placeholder_quant_type_kebabcase_2() {
 // FlatCase,
 #[test]
 fn placeholder_quant_type_flatcase() {
-    let p = parse_pattern("{name:flatcase}").unwrap();
+    let p = parse_pattern("{name:flatcase()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -609,7 +610,7 @@ fn placeholder_quant_type_flatcase() {
 
 #[test]
 fn placeholder_quant_type_flatcase_2() {
-    let p = parse_pattern("{name:flat_case}").unwrap();
+    let p = parse_pattern("{name:flat_case()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -625,7 +626,7 @@ fn placeholder_quant_type_flatcase_2() {
 // UpperCase,
 #[test]
 fn placeholder_quant_type_uppercase() {
-    let p = parse_pattern("{name:UPPER_CASE}").unwrap();
+    let p = parse_pattern("{name:UPPER_CASE()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {
@@ -640,7 +641,7 @@ fn placeholder_quant_type_uppercase() {
 
 #[test]
 fn placeholder_quant_type_uppercase_2() {
-    let p = parse_pattern("{name:upper_case}").unwrap();
+    let p = parse_pattern("{name:upper_case()}").unwrap();
     assert_eq!(
         p.nodes,
         vec![Node::NamedPlaceholder {

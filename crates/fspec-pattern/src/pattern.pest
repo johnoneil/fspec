@@ -16,7 +16,7 @@ slash       = { "/" }
 globstar    = { "**" }
 
 // "{name[:limiter]?}" becomes Placeholder
-named_placeholder = { "{" ~ WS* ~ ident ~ WS* ~ (":" ~ WS* ~ limiter)? ~ WS* ~ "}" }
+named_placeholder = { "{" ~ WS* ~ ident ~ WS* ~ (":" ~ WS* ~ limiter_call)? ~ WS* ~ "}" }
 
 // Everything else is a Literal chunk.
 // We chunk literals so you can merge consecutive Literal nodes easily.
@@ -56,7 +56,9 @@ limiter_kind = @{
 
 // Optional “( … )” arguments: either a quant or a set.
 //limiter_args = { "(" ~ (quant | set_items) ~ ")" }
-limiter_args = { "(" ~ WS* ~ quant ~ WS* ~ ")" }
+limiter_call = { limiter_kind ~ WS* ~ "(" ~ WS* ~ limiter_args? ~ WS* ~ ")" }
+
+limiter_args = { quant }   // or a union if you have other arg forms
 
 // Quantifiers: exactly, at-least, range, any
 quant       = { range | at_least | exactly | any }
