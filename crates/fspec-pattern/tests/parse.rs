@@ -196,6 +196,22 @@ fn parses_dot() {
     );
 }
 
+#[ignore = "I think this case is correct but doesn't work yet."]
+#[test]
+fn parses_not_dot() {
+    let p = parse_pattern("root/.abcdefg/file.txt").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("root".into()),])),
+            Node::Slash,
+            Node::Segment(Segment::Parts(vec![SegPart::Literal(".abcdefg".into()),])),
+            Node::Slash,
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("file.txt".into()),])),
+        ]
+    );
+}
+
 #[test]
 fn parses_doubledot() {
     let p = parse_pattern("root/../file.txt").unwrap();
@@ -205,6 +221,24 @@ fn parses_doubledot() {
             Node::Segment(Segment::Parts(vec![SegPart::Literal("root".into()),])),
             Node::Slash,
             Node::Segment(Segment::DotDot),
+            Node::Slash,
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("file.txt".into()),])),
+        ]
+    );
+}
+
+#[ignore = "I think this case is correct but doesn't work yet."]
+#[test]
+fn parses_not_doubledot() {
+    let p = parse_pattern("root/..hellothere../file.txt").unwrap();
+    assert_eq!(
+        p.nodes,
+        vec![
+            Node::Segment(Segment::Parts(vec![SegPart::Literal("root".into()),])),
+            Node::Slash,
+            Node::Segment(Segment::Parts(vec![SegPart::Literal(
+                "..hellothere..".into()
+            ),])),
             Node::Slash,
             Node::Segment(Segment::Parts(vec![SegPart::Literal("file.txt".into()),])),
         ]
