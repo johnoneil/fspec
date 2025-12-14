@@ -1,6 +1,19 @@
 
 # `fspec-pattern` crate
 
+~~Segment-special tokens and validation
+enforce ** only as a whole segment
+add . and .. as whole segments
+decide what to do with lone * (I’d do whole-segment-only first)
+caping for braces ({{ / }})
+This prevents “I literally need a brace in a filename” edge cases from becoming impossible.~~
+
+Raw regex limiter (re("..."))
+Keep it simple: one string argument; compile with Rust regex (or whatever you plan) later.
+
+Depth-controlled multi-segment matching
+Revisit after you’ve actually implemented matching semantics and have a reason to control depth.
+
 
 ## up next
 
