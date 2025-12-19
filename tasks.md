@@ -1,6 +1,28 @@
 
 # `fspec-pattern` crate
 
+Rethink the parser to be like gitignore
+
+* allow negation at start
+* go top to bottom in file (in tool)
+* ignore trailing spaces (maybe in tool, remove them before parsing.
+
+gitignore pest:// Whitespace and comments
+WHITESPACE = _{ " " | "\t" }
+comment    = _{ "#" ~ (!NEWLINE ~ ANY)* }
+
+// Patterns
+line     = { (negation? ~ pattern) }
+negation = { "!" }
+pattern  = { (escape | char)+ ~ folder? }
+folder   = { "/" }
+escape   = { "\\" ~ ANY }
+char     = { !NEWLINE ~ !WHITESPACE ~ !folder ~ ANY }
+
+// File structure
+file = { SOI ~ (comment? ~ (line | NEWLINE))* ~ EOI }
+
+
 ~~Segment-special tokens and validation
 enforce ** only as a whole segment
 add . and .. as whole segments

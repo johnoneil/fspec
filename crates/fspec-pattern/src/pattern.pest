@@ -13,16 +13,16 @@ WS = _{ " " | "\t" | "\r" | "\n" }
 slash       = { "/" }
 
 // "**" becomes GlobStar segment.
-globstar_segment    = { "**" }
+globstar_segment    = { "**/" }
 
 // "*" becomes star segment.
-star_segment = { "*" }
+star_segment = { "*/" }
 
 // "." becomes dot segment.
-dot_segment = { "." }
+dot_segment = { "./" }
 
 // ".." becomes dotdot segment.
-dotdot_segment = { ".." }
+dotdot_segment = { "../" }
 
 // "{name[:limiter]?}" becomes a named placeholder, the limiter is optional
 named_placeholder = { "{" ~ WS* ~ ident ~ WS* ~ (":" ~ WS* ~ limiter_call)? ~ WS* ~ "}" }
