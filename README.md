@@ -1,215 +1,268 @@
-# **fspec — A Declarative Way to Tame and Audit Filesystems**
+# fspec — Declarative Filesystem Specifications
 
-fspec is a tool that helps define file system structure and naming conventions such that:
+**fspec** is a tool for describing the filesystem you *intend* to have, and continuously checking the real filesystem against that description.
 
-* Current filesystem structure may be continually checked to prevent drift from the agreed-upon spec.
-* The introduction of new file types and directories must be reviewed via updates to the spec.
-* Documentation for teams or migration/maintenance code may be generated from the spec.
-* Complex audits of highly process-oriented filesystems may be conducted.
-* Explicit conventions are agreed upon, reducing reliance on friction-inducing tribal knowledge.
-* Optional rules and dependencies allow missing, stale, and other process-related file states to be inferred.
+An `.fspec` file defines which files and directories are **allowed**, which are **ignored**, and—by omission—which paths are unexpected and should be reported.
 
-It lets teams **describe the filesystem they *intend* to have**, and then compare the real world against that description. In other words, **fspec lints the filesystem itself.**
+In short:
+**fspec lints the filesystem itself.**
 
-Think of it as **a style guide for your directory tree — one the computer can enforce.**
+This is especially useful for:
 
----
-
-# Example fspec
-
-```toml
-# fspec.toml example — a video archive
-
-# Establish conventions which may be shared across fspecs in a tree.
-[identifiers]
-year = "{int(4)}"               # 1946
-title = "{snake_case}"          # its_a_wonderful_life
-show = "{PascalCase}"           # CubbyBear
-season = "s{int(2+)}"           # s01, s02, s999
-episode_number = "e{int(2+)}"   # e01, e02, e999
-ext = "{mp4,mov,mkv,avi}"
-
-# movie files: e.g. "movies/1946/its_a_wonderful_life.1946.mp4"
-[file.movie]
-pattern = "movies/{year}/{title}_{year}.{ext}"
-
-# episodes by season: e.g. "shows/CubbyBear/s01/CubbyBear.1936.s01e03.mkv"
-[file.episode]
-pattern = "shows/{show}/{season}/{show}.{year}.{season}{episode_number}.{ext}"
-
-# For any subtitle files, there must be a similarly named episode file
-[file.episode_subtitle]
-pattern = { use = "episode", ext = "{srt,ass}" }
-rule = [ "episode exists_by show,season,episode_number" ]
-```
-
-Readable. Declarative. Self-documenting.
+* large media / asset archives
+* research datasets
+* build artifacts and outputs
+* long-lived project folders
+* repositories where naming and placement conventions matter
 
 ---
 
-# Typical Use Cases
+## Core Ideas
 
-## **1. Check the current filesystem against the intended one**
-
-```sh
-$ fspec check --suggest
-✓ directory structure matches spec
-✗ filename "renders/approved/shot OP 010.mp4" does not match spec
-  did you mean "shot_OP_010.mp4"?
-```
-
-fspec reports:
-
-* pattern violations
-* misplaced files
-* missing files
-* unknown / extraneous files
-* structural drift
-
-Deviations from the spec can be categorized as errors or warnings.
-
-With `--suggest`, fspec offers fixes.
+* `.fspec` is an **allow-list**: anything not explicitly allowed is reported.
+* Rules are **declarative**, readable, and order-dependent.
+* Filesystem structure is validated *without* scripts, regex soup, or tribal knowledge.
+* The format is intentionally small and constrained.
 
 ---
 
-## **2. Audit the filesystem as evidence of process**
+## Example: Media / Video Archive
 
-Your `.fspec.toml` may also include rules and dependencies, enabling fspec to infer:
+`fspec` was intentionally designed to bring order to large hand-named file collections, though this is not its only use case.
 
-* whether files are *missing*
-* whether files are *stale* (derived files older than their sources)
-* whether files are *blocked* (derived files exist without required sources)
+```fspec
+# movies
++ /movies/{year:int(4)}/{snake_case}_{year}.{ext:mp4|mkv}
++ /movies/unsorted/**/*.{ext:mp4|mkv}
 
-```toml
-# a set of software design docs, named by revision.
-[file.software_design]
-pattern = "designs/approved/**/{name:PascalCase}.{rev:DDMonYY}.pdf"
+# series
++ /series/{year:int(4)}/{name:PascalCase}/season_{season:int(2+)}/{name}.s{season}e{episode:int(2+)}.{ext:mp4|mkv}
++ /series/unsorted/**/*.{ext:mp4|mkv}
 
-# c source is stale if it's older than the latest design doc.
-# c source requires an associated unit test.
-[file.c_source]
-pattern = "source/**/{name:camelCase}.c"
-depends_on = ["software_design latest_by rev"]
-rule = ["c_unit_test exists_by name"]
-
-# warn if there are orphaned unit tests
-[file.c_unit_test]
-pattern = "tests/**/{name:camelCase}_unit_test.c"
-depends_on = ["c_source by name warn"]
+# artwork
++ /movies/**/{snake_case}_{year}_thumbnail.png
++ /series/{year:int(4)}/{name:PascalCase}/{name}_thumbnail.png
++ /series/{year:int(4)}/{name:PascalCase}/season_{season:int(2+)}/{name}.s{season}e{episode:int(2+)}_thumbnail.png
 ```
 
-```sh
-$ fspec stale
-✗ source/matrixCalc.c is stale (designs/approved/SoftwareDesign.12Dec25.pdf updated)
-```
+This allows structured organization *and* transitional “unsorted” areas and is especially good at detecting deviations which creep in via hand naming of files.
 
 ---
 
-## **3. Clean, reorganize, or migrate messy folders**
+## Example: Rust Workspace
 
-Because fspec knows the *intended* structure:
+`fspec` can also be used to enforce file structure and naming in code repositories, though tht is not its focus.
 
-* it finds files that don’t belong anywhere
-* it identifies dead directories
-* it shows mismatches between legacy naming and current standards
-* it guides controlled migrations without guesswork
+```fspec
+# ignore build artifacts everywhere
+- target/
+
+# root workspace files
++ /Cargo.toml
++ /Cargo.lock
+
+# Rust source must be snake_case
+{snake_case}.rs
+
+# crates layout
++ /crates/{crate:kebab-case}/Cargo.toml
++ /crates/{crate:kebab-case}/src/**/
++ /crates/{crate:kebab-case}/src/**/{snake_case}.rs
+```
+
+Anything not matching these rules will be reported.
 
 ---
 
-## **4. Generate filesystem-related documentation, tooling, and code**
+## The `.fspec` File Format (v1)
 
-Because the description is formal and consistent, fspec can generate:
+The `.fspec` file format was intentionally pattered after `.gitignore` though with much more functionality. But while `.gitignore` is merely an ignore list, `.fspec` is an allow/ignore list.
 
-* directory templates
-* ingest/rename scripts
-* file validators
-* migration tools
-* watchers
-* regexes for downstream tools
-* skeleton repos or project trees
-* documentation of naming rules
-* dependency graphs
+An `.fspec` file is a **line-based specification**.
 
-fspec becomes a **single declarative source** from which the filesystem automation ecosystem can be derived.
+### Comments
 
----
-
-# CLI Overview
-
-```
-fspec check       # Validate structure + naming
-fspec stale       # Report stale derived assets
-fspec suggest     # Suggest valid names for mismatched files
-fspec explain     # Show how patterns expand / which regexes are generated
-fspec graph       # Show dependency graph
+```fspec
+# this is a comment
 ```
 
-Common flags:
+### Rule types
 
-```
---suggest   # add suggestions during check
---ai        # allow LLM-assisted fuzzy matching
---root      # prevent the current directory .fspec from inheriting parents
---json      # output machine-readable results
+Each non-comment line is a rule:
+
+| Prefix   | Meaning  |
+| -------- | -------- |
+| `+`      | `allow`  |
+| `allow`  | `allow`  |
+| `-`      | `ignore` |
+| `ignore` | `ignore` |
+
+Examples:
+
+```fspec
++ {snake_case}.rs
++ /Cargo.toml
+- target/
+ignore .git/
 ```
 
 ---
 
-# Philosophy
+## Rule Evaluation Semantics
 
-* **The filesystem is part of the workflow. Treat it that way.**
-* **Conventions are valuable only if enforced consistently.**
-* **Humans are bad at remembering naming rules; fspec isn’t.**
-* **Declarative rules beat ad hoc scripts.**
-* **Process integrity begins with structure.**
+These rules are fundamental and should be considered *part of the spec*:
 
-fspec brings the benefits of linting, static analysis, schema validation, and dependency checking
-**into the directory tree itself.**
+### 1. Default policy
+
+Anything not matched by an `allow` rule is reported (warning or error).
+
+### 2. Order matters
+
+Rules are evaluated **top to bottom**.
+If multiple rules match a path, **the last matching rule wins**.
+
+### 3. Rooted vs unanchored patterns
+
+* Patterns starting with `/` are **rooted** at the directory containing the `.fspec`.
+* Patterns without `/` are **unanchored** and may match anywhere.
+
+```fspec
+/bin        # only matches ./bin
+bin         # matches bin at any depth
+```
+
+### 4. Ignore rules
+
+* `ignore` applies to **files or directories**
+* A trailing `/` means *directory-only*
+
+```fspec
+- bin        # ignore file or directory named "bin"
+- bin/       # ignore directory "bin" and everything under it
+```
+
+### 5. Ignored-subtree barrier
+
+Ignored directories form a barrier:
+
+* **Unanchored `allow` rules do NOT apply inside ignored directories**
+* **Rooted `allow` rules MAY re-allow specific paths inside ignored directories**
+
+```fspec
+- /bin/
+{snake_case}.rs      # does NOT re-allow /bin/foo.rs
++ /bin/tool.rs       # DOES re-allow this file (with a warning)
+```
+
+Re-allowing files inside ignored directories is permitted but should emit a warning.
+
+### 6. Directories implied by allowed files
+
+If a file or directory is allowed, the directories required to reach it are considered **structurally allowed**.
+You do not need to separately allow every directory component.
 
 ---
 
-# Roadmap
+## Pattern Language
 
-### **1. Initial Implementation**
+Patterns are path-like strings with literals, globs, and placeholders.
 
-* [ ] Define `.fspec.toml` format
-* [ ] Implement identifier grammar (`int()`, `snake_case`, unions, etc.)
-* [ ] Pattern compiler (expand patterns → regex)
-* [ ] Directory walking + match engine
-* [ ] Basic CLI (`check`, `suggest`, etc.)
-* [ ] Basic reporting (pattern violations, unknown files)
+### Globs
+
+| Pattern | Meaning                                |
+| ------- | -------------------------------------- |
+| `*`     | any characters within one path segment |
+| `**`    | zero or more path segments (recursive) |
+
+Examples:
+
+```fspec
+src/*
+src/**
+```
+
+### Placeholders
+
+Placeholders match exactly **one path segment** and may enforce constraints.
+
+Syntax:
+
+```
+{tag}
+{tag:limiter}
+{tag:limiter(args)}
+```
+
+Common built-in limiters. These ensure path or file segments match certain patterns:
+
+* `snake_case`
+* `PascalCase`
+* `kebab-case`
+* `int(n)` (exact width)
+* `int(n+)` (at least n digits)
+
+Examples:
+
+```fspec
+{snake_case}.rs
+{year:int(4)}
+season_{season:int(2+)}
+```
+
+### Repeated placeholders
+
+If the same placeholder tag appears more than once in a pattern, all occurrences must match the **same value**.
+
+```fspec
+movies/{year:int(4)}/{snake_case}_{year}.mp4
+```
 
 ---
 
-### **2. Dependency & Rule Engine**
+## Conformance Levels / Roadmap
 
-* [ ] Implement dependency resolution
-* [ ] Support `depends_on` grammar
-* [ ] Detect stale files
-* [ ] Detect blocked files
-* [ ] Detect missing files
-* [ ] Implement rule grammar (`exists_by`, etc.)
-* [ ] Rule violation reporting
+fspec is intentionally staged. Not all features need to exist at once.
+
+### Level 0 — Matching
+
+* parse `.fspec`
+* walk filesystem
+* classify paths as allowed / ignored / unaccounted
+* report violations
+
+### Level 1 — Extraction
+
+* placeholder capture
+* repeated placeholder equality
+* ambiguity detection and warnings
+
+### Level 2 — Diagnostics
+
+* explain which rule matched
+* warn on re-allowed ignored paths
+* warn on ambiguous matches
+
+### Level 3 — Suggestions
+
+* generate candidate allowed paths
+* edit-distance / structural matching
+* “did you mean …” rename proposals
+
+### Level 4 — Extensions (future)
+
+* hierarchical `.fspec` inheritance
+* dependency / freshness rules
+* documentation and tooling generation
 
 ---
 
-### **3. Matching Engine & AI Integration**
+## Philosophy
 
-* [ ] Edit-distance filename matcher
-* [ ] Structural matcher (e.g., extract season/episode, numeric groups)
-* [ ] “Did you mean” suggestion engine
-* [ ] Optional LLM-assisted matching (`--ai`)
-* [ ] Configurable match strategies / thresholds
+* **The filesystem is part of the system.**
+* **Conventions only matter if enforced.**
+* **Explicit structure beats folklore.**
+* **Small, declarative specs scale better than scripts.**
 
----
-
-### **4. Documentation & Code Generation**
-
-* [ ] Generate human-readable Markdown documentation from fspec
-* [ ] Generate regexes from compiled patterns
-* [ ] Generate ingest/rename scripts (Python)
-* [ ] Generate directory scaffolding templates
-* [ ] Dependency graph output (`fspec graph`)
-* [ ] JSON output mode for tooling integration
+fspec is about making filesystem structure *auditable, explainable, and intentional*.
 
 ---
