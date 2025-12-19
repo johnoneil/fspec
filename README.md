@@ -23,6 +23,7 @@ This is especially useful for:
 * Rules are **declarative**, readable, and order-dependent.
 * Filesystem structure is validated *without* scripts, regex soup, or tribal knowledge.
 * The format is intentionally small and constrained.
+* Additions to the `.fspec` are easy, but should be discussed by shareholders. This allows filesystem conventions to be subject to a carefully controlled review.
 
 ---
 
