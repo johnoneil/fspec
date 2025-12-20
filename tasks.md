@@ -12,8 +12,8 @@ If you want a quick checklist for your ~15 goldens (so you don’t accidentally 
 - [x] Unaccounted file
 - [x] Unaccounted dir
 - [x] Rooted vs unanchored
-- [ ] `*` single-segment glob
-- [ ] `**` recursive glob
+- [x] `*` single-segment glob
+- [x] `**` recursive glob
 - [x] `**` matches zero segments
 - [x] Trailing `/` directory-only allow
 - [ ] `ignore` file
