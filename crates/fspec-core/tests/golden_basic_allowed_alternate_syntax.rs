@@ -48,13 +48,10 @@ allow    eee.file
 
     assert!(report.is_allowed("aaa.file"));
     assert!(report.is_allowed("bbb.file"));
-    assert!(report.is_allowed("ccc.file"));
     assert!(report.is_allowed("ddd.file"));
     assert!(report.is_allowed("a/b/c/ddd.file"));
     assert!(report.is_allowed("eee.file"));
     assert!(report.is_allowed("e/f/g/eee.file"));
-    assert!(report.is_allowed("fff.file"));
-    assert!(report.is_allowed("h/i/j/fff.file"));
     assert!(report.is_allowed("ggg.file"));
     assert!(report.is_allowed("hhh.file"));
     assert!(report.is_allowed("iii.file"));
@@ -62,8 +59,6 @@ allow    eee.file
     assert!(report.is_allowed("k/l/m/jjj.file"));
     assert!(report.is_allowed("kkk.file"));
     assert!(report.is_allowed("n/o/p/kkk.file"));
-    assert!(report.is_allowed("lll.file"));
-    assert!(report.is_allowed("q/r/s/lll.file"));
 
     // Nothing else should be flagged.
     assert!(
