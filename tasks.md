@@ -1,4 +1,35 @@
 
+# `fspec-core` tests
+
+Sounds good. While you’re duplicating, two small tips that keep “golden bloat” from becoming a maintenance headache:
+
+* **Make each golden test pin exactly one semantic**, and keep the tree tiny. When a test fails, you immediately know what rule regressed.
+* Add a short comment header to each file: “This test freezes: X, Y”.
+
+If you want a quick checklist for your ~15 goldens (so you don’t accidentally miss something important), here’s a tight set that maps well to your current semantics:
+
+- [x] All allowed (sanity)
+- [x] Unaccounted file
+- [x] Unaccounted dir
+- [x] Rooted vs unanchored
+- [ ] `*` single-segment glob
+- [ ] `**` recursive glob
+- [x] `**` matches zero segments
+- [x] Trailing `/` directory-only allow
+- [ ] `ignore` file
+- [ ] `ignore` dir subtree
+- [ ] Ignored-subtree barrier (unanchored allow doesn’t pierce)
+- [x] Rooted re-allow inside ignored subtree (plus warning)
+- [ ] Last match wins
+- [x] Repeated tag equality
+- [ ] Union limiter (`ext:mp4|mkv`) or `int(2+)` semantics (pick one)
+
+That set will give you a very solid “semantic harness” before you implement much.
+
+If you later add hierarchical `.fspec` inheritance, make that an entirely separate batch so v0.1 stays stable.
+
+
+
 # `fspec-pattern` crate
 
 Rethink the parser to be like gitignore

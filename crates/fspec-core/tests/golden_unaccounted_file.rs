@@ -9,21 +9,19 @@ fn write_file(path: &Path, contents: &str) {
     }
     fs::write(path, contents).unwrap();
 }
-
 #[test]
-fn golden_basic_all_allowed() {
+fn golden_basic_unaccounted_file() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
 
     write_file(
         &root.join(".fspec"),
         r#"
-allow /Cargo.toml
 allow /src/**/{tag:snake_case}.rs
 "#,
     );
 
-    write_file(&root.join("Cargo.toml"), "[package]\nname = \"demo\"\n");
+    write_file(&root.join("unaccounted.file"), "dummy_file\n");
     write_file(&root.join("src/main.rs"), "fn main() {}\n");
     write_file(&root.join("src/utils/helpers.rs"), "pub fn help() {}\n");
     write_file(
@@ -33,14 +31,12 @@ allow /src/**/{tag:snake_case}.rs
 
     let report = check_tree(root, Severity::Error).unwrap();
 
-    assert!(report.is_allowed("Cargo.toml"));
     assert!(report.is_allowed("src/main.rs"));
     assert!(report.is_allowed("src/utils/helpers.rs"));
     assert!(report.is_allowed("src/this_is_snake_case.rs"));
 
-    // Nothing else should be flagged.
-    assert!(
-        report.unaccounted_paths().is_empty(),
-        "unexpected unaccounted paths"
-    );
+    assert!(report.is_unaccounted("unaccounted.file"));
+
+    let unaccounted = report.unaccounted_paths();
+    assert_eq!(unaccounted, vec!["unaccounted.file"]);
 }
