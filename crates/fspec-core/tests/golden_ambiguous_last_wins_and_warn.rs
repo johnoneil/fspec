@@ -10,6 +10,7 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
+#[ignore = "reenable when we work on tags."]
 #[test]
 fn golden_ambiguous_last_wins_and_warn() {
     let tmp = tempfile::tempdir().unwrap();

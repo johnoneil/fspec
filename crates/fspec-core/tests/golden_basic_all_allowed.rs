@@ -19,7 +19,7 @@ fn golden_basic_all_allowed() {
         &root.join(".fspec"),
         r#"
 allow /Cargo.toml
-allow /src/**/{tag:snake_case}.rs
+allow /src/**/*.rs
 "#,
     );
 

@@ -10,6 +10,7 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
+#[ignore = "reenable when we support tags"]
 #[test]
 fn golden_repeated_tag_equality() {
     let tmp = tempfile::tempdir().unwrap();

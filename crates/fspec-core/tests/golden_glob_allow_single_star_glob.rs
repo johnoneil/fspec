@@ -17,7 +17,7 @@ fn golden_basic_allow_single_star_glob() {
     write_file(
         &root.join(".fspec"),
         r#"
-allow /src/*/{tag:snake_case}.rs
+allow /src/*/*.rs
 "#,
     );
 

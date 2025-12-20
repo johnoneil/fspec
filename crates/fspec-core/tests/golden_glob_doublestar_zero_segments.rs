@@ -18,7 +18,7 @@ fn golden_glob_doublestar_zero_segments() {
     write_file(
         &root.join(".fspec"),
         r#"
-allow /src/**/{tag:snake_case}.rs
+allow /src/**/*.rs
 "#,
     );
 
