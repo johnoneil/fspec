@@ -16,8 +16,8 @@ If you want a quick checklist for your ~15 goldens (so you don’t accidentally 
 - [x] `**` recursive glob
 - [x] `**` matches zero segments
 - [x] Trailing `/` directory-only allow
-- [ ] `ignore` file
-- [ ] `ignore` dir subtree
+- [x] `ignore` file
+- [x] `ignore` dir subtree
 - [ ] Ignored-subtree barrier (unanchored allow doesn’t pierce)
 - [x] Rooted re-allow inside ignored subtree (plus warning)
 - [ ] Last match wins
