@@ -67,7 +67,7 @@ fn split_kw_owned(s: &str) -> Option<(RuleKind, String)> {
 mod tests {
     use super::*;
 
-    use crate::spec::{Component, Pattern, Segment};
+    use crate::spec::{Pattern, Segment};
 
     #[test]
     fn parses_basic_rules_smoke() {
