@@ -184,4 +184,30 @@ mod tests {
     fn rejects_double_slash() {
         assert!(parse_pattern_str("a//b", 1).is_err());
     }
+
+    #[test]
+    fn spaces_in_dir_literal() {
+        let p = parse_pattern_str("/assets/this dir has spaces /x", 1).unwrap();
+        assert_eq!(
+            p,
+            Anchored(vec![
+                Dir(Lit("assets".into())),
+                Dir(Lit("this dir has spaces ".into())),
+                Entry(Lit("x".into()))
+            ])
+        );
+    }
+
+    #[test]
+    fn spaces_in_file_literal() {
+        let p = parse_pattern_str("/assets/approved/My mom named this file.png", 1).unwrap();
+        assert_eq!(
+            p,
+            Anchored(vec![
+                Dir(Lit("assets".into())),
+                Dir(Lit("approved".into())),
+                Entry(Lit("My mom named this file.png".into()))
+            ])
+        );
+    }
 }
