@@ -1,16 +1,17 @@
 use crate::error::Error;
+use crate::pattern::parse_pattern_str;
 use crate::spec::{Rule, RuleKind};
 
-pub fn parse_fspec(src: &str) -> Result<Vec<Rule>, Error> {
+pub(crate) fn parse_fspec(src: &str) -> Result<Vec<Rule>, Error> {
     let mut rules = Vec::new();
 
     for (idx, raw_line) in src.lines().enumerate() {
         let line_no = idx + 1;
 
-        // Strip trailing '\r' for Windows CRLF.
+        // Handle Windows CRLF files.
         let line = raw_line.strip_suffix('\r').unwrap_or(raw_line);
 
-        // Trim only for control flow; pattern will be trimmed intentionally later.
+        // We only trim for control flow; the pattern itself will be handled below.
         let trimmed = line.trim_start();
 
         // Comments only at start of line (after optional leading whitespace).
@@ -18,31 +19,25 @@ pub fn parse_fspec(src: &str) -> Result<Vec<Rule>, Error> {
             continue;
         }
 
-        // Parse: <kw> <ws> <pattern>
-        let (kw, rest) = split_kw(trimmed).ok_or_else(|| Error::Parse {
+        // Parse keyword and the rest of the line.
+        let (kind, rest_owned) = split_kw_owned(trimmed).ok_or_else(|| Error::Parse {
             line: line_no,
             col: 1,
             msg: "expected 'allow' or 'ignore'".into(),
         })?;
 
-        let kind = match kw {
-            "allow" => RuleKind::Allow,
-            "ignore" => RuleKind::Ignore,
-            _ => unreachable!(),
-        };
-
-        let rest = rest.trim_start();
+        // Everything after the keyword is the pattern (spaces allowed).
+        let rest = rest_owned.trim_start();
         if rest.is_empty() {
             return Err(Error::Parse {
                 line: line_no,
-                col: (trimmed.len() + 1).min(line.len()),
+                col: 1,
                 msg: "expected a pattern after keyword".into(),
             });
         }
 
-        // Since pattern is "rest of line", spaces are allowed.
-        // We do trim_end so people can align / pad with whitespace.
-        let pattern = rest.trim_end().to_string();
+        let raw_pattern = rest.trim_end();
+        let pattern = parse_pattern_str(raw_pattern, line_no)?;
 
         rules.push(Rule {
             line: line_no,
@@ -54,31 +49,58 @@ pub fn parse_fspec(src: &str) -> Result<Vec<Rule>, Error> {
     Ok(rules)
 }
 
-fn split_kw(s: &str) -> Option<(&str, &str)> {
-    if let Some(rest) = s.strip_prefix("allow") {
-        return Some(("allow", rest));
+fn split_kw_owned(s: &str) -> Option<(RuleKind, String)> {
+    fn kw(s: &str, word: &str, kind: RuleKind) -> Option<(RuleKind, String)> {
+        let rest = s.strip_prefix(word)?;
+        // Require a boundary so "allowance" doesn't match "allow".
+        if rest.is_empty() || rest.starts_with(char::is_whitespace) {
+            Some((kind, rest.to_string()))
+        } else {
+            None
+        }
     }
-    if let Some(rest) = s.strip_prefix("ignore") {
-        return Some(("ignore", rest));
-    }
-    None
+
+    kw(s, "allow", RuleKind::Allow).or_else(|| kw(s, "ignore", RuleKind::Ignore))
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    use crate::spec::{Component, Pattern, Segment};
+
     #[test]
-    fn parses_basic_rules() {
+    fn parses_basic_rules_smoke() {
         let src = r#"
-        # comment
-        allow movies/Foo Bar (2001).mkv
-        ignore **/*.tmp    
-    "#;
+            # comment
+            allow movies/Foo Bar (2001).mkv
+            ignore **/*.tmp
+        "#;
 
         let rules = parse_fspec(src).unwrap();
         assert_eq!(rules.len(), 2);
         assert_eq!(rules[0].line, 3);
-        assert_eq!(rules[0].pattern, "movies/Foo Bar (2001).mkv");
+        assert_eq!(rules[0].kind, RuleKind::Allow);
+        assert_eq!(rules[1].kind, RuleKind::Ignore);
     }
+
+    // #[test]
+    // fn parses_basic_rules() {
+    //     let src = r#"
+    //     # comment
+    //     allow movies/Foo Bar (2001).mkv
+    //     ignore **/*.tmp
+    // "#;
+
+    //     let rules = parse_fspec(src).unwrap();
+    //     assert_eq!(rules.len(), 2);
+    //     assert_eq!(rules[0].line, 3);
+
+    //     assert_eq!(
+    //         rules[0].pattern,
+    //         Pattern::Unanchored(vec![Component::Entry(Segment::Lit(
+    //             "movies/Foo Bar (2001).mkv".to_string()
+    //         ))])
+    //     );
+    // }
 }

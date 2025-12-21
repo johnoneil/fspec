@@ -1,5 +1,6 @@
 mod error;
 mod parse;
+mod pattern;
 mod report;
 mod severity;
 mod spec;
@@ -7,7 +8,7 @@ mod spec;
 pub use error::Error;
 pub use report::{Diagnostic, Report, Status};
 pub use severity::Severity;
-pub use spec::{Rule, RuleKind};
+pub use spec::{Component, Pattern, Rule, RuleKind, Segment};
 
 use std::path::Path;
 
