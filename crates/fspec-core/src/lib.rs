@@ -236,10 +236,44 @@ pub fn check_tree(root: &Path, default_severity: Severity) -> Result<Report, Err
 
     eprintln!("{:#?}", classified);
 
-    // TODO: produce diagnostics
+    let mut report = Report::default();
+
+    // Optionally: don’t ever report on root .fspec as "unaccounted"
+    // (either skip it here, or skip it during the walk)
+    // report.set_status(".fspec", Status::Allowed);
+
+    for p in classified
+        .ignored_dirs
+        .iter()
+        .chain(classified.ignored_files.iter())
+    {
+        report.set_status(p.to_string_lossy().replace('\\', "/"), Status::Ignored);
+    }
+
+    for p in classified
+        .unclassified_dirs
+        .iter()
+        .chain(classified.unclassified_files.iter())
+    {
+        // optionally skip ".fspec"
+        if p.as_os_str() == ".fspec" {
+            continue;
+        }
+        report.set_status(p.to_string_lossy().replace('\\', "/"), Status::Unaccounted);
+    }
+
+    for p in classified
+        .allowed_dirs
+        .iter()
+        .chain(classified.allowed_files.iter())
+    {
+        report.set_status(p.to_string_lossy().replace('\\', "/"), Status::Allowed);
+    }
+
+    Ok(report)
 
     // TEMPORARY: return early until next stages exist
-    Err(Error::Semantic {
-        msg: "Unimplemented error".into(),
-    })
+    // Err(Error::Semantic {
+    //     msg: "Unimplemented error".into(),
+    // })
 }

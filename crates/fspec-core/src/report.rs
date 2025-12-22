@@ -18,7 +18,7 @@ pub struct Diagnostic {
     pub rule_lines: Vec<usize>, // optional: lines involved
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Report {
     // Key: normalized relative path string ("src/main.rs", "bin", ...)
     statuses: BTreeMap<String, Status>,
@@ -26,6 +26,21 @@ pub struct Report {
 }
 
 impl Report {
+    // pub fn new() -> Self {
+    //     Self {
+    //         statuses: BTreeMap::new(),
+    //         diagnostics: Vec::new(),
+    //     }
+    // }
+
+    pub fn set_status(&mut self, path: impl Into<String>, status: Status) {
+        self.statuses.insert(path.into(), status);
+    }
+
+    pub fn push_diagnostic(&mut self, d: Diagnostic) {
+        self.diagnostics.push(d);
+    }
+
     pub fn is_allowed(&self, path: &str) -> bool {
         self.statuses
             .get(path)
