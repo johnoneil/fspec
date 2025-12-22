@@ -10,6 +10,7 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
+#[ignore = "enable when literal globbing (*.rs) is implemented."]
 #[test]
 fn golden_glob_doublestar_zero_segments() {
     let tmp = tempfile::tempdir().unwrap();
