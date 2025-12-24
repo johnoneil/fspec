@@ -42,7 +42,7 @@ gitignore pest:// Whitespace and comments
 WHITESPACE = _{ " " | "\t" }
 comment    = _{ "#" ~ (!NEWLINE ~ ANY)* }
 
-// Patterns
+// FSPatterns
 line     = { (negation? ~ pattern) }
 negation = { "!" }
 pattern  = { (escape | char)+ ~ folder? }

@@ -1,7 +1,7 @@
 use crate::error::Error;
-use crate::spec::{Component, Pattern, Segment};
+use crate::spec::{FSEntry, FSPattern, Segment};
 
-pub(crate) fn parse_pattern_str(raw: &str, line: usize) -> Result<Pattern, Error> {
+pub(crate) fn parse_pattern_str(raw: &str, line: usize) -> Result<FSPattern, Error> {
     let s = raw.trim();
     if s.is_empty() {
         return Err(Error::Parse {
@@ -44,7 +44,7 @@ pub(crate) fn parse_pattern_str(raw: &str, line: usize) -> Result<Pattern, Error
         });
     }
 
-    let mut comps: Vec<Component> = Vec::with_capacity(parts.len());
+    let mut comps: Vec<FSEntry> = Vec::with_capacity(parts.len());
 
     for (i, part) in parts.iter().enumerate() {
         let seg = match *part {
@@ -56,25 +56,25 @@ pub(crate) fn parse_pattern_str(raw: &str, line: usize) -> Result<Pattern, Error
         let is_last = i + 1 == parts.len();
         if is_last {
             if dir_trailing {
-                comps.push(Component::Dir(seg));
+                comps.push(FSEntry::Dir(seg));
             } else {
-                comps.push(Component::Entry(seg));
+                comps.push(FSEntry::File(seg));
             }
         } else {
-            comps.push(Component::Dir(seg));
+            comps.push(FSEntry::Dir(seg));
         }
     }
 
     Ok(match pat_kind {
-        "anchored" => Pattern::Anchored(comps),
-        _ => Pattern::Unanchored(comps),
+        "anchored" => FSPattern::Anchored(comps),
+        _ => FSPattern::Unanchored(comps),
     })
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::spec::{Component::*, Pattern::*, Segment::*};
+    use crate::spec::{FSEntry::*, FSPattern::*, Segment::*};
 
     #[test]
     fn unanchored_dir_then_entry() {
@@ -84,7 +84,7 @@ mod tests {
             Unanchored(vec![
                 Dir(Lit("assets".into())),
                 Dir(Star),
-                Entry(Lit("*.png".into()))
+                File(Lit("*.png".into()))
             ])
         );
     }
@@ -103,7 +103,7 @@ mod tests {
             Anchored(vec![
                 Dir(Lit("assets".into())),
                 Dir(DoubleStar),
-                Entry(Lit("x".into()))
+                File(Lit("x".into()))
             ])
         );
     }
@@ -121,7 +121,7 @@ mod tests {
             Anchored(vec![
                 Dir(Lit("assets".into())),
                 Dir(Lit("this dir has spaces ".into())),
-                Entry(Lit("x".into()))
+                File(Lit("x".into()))
             ])
         );
     }
@@ -134,7 +134,7 @@ mod tests {
             Anchored(vec![
                 Dir(Lit("assets".into())),
                 Dir(Lit("approved".into())),
-                Entry(Lit("My mom named this file.png".into()))
+                File(Lit("My mom named this file.png".into()))
             ])
         );
     }

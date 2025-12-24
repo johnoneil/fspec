@@ -1,4 +1,4 @@
-use crate::ast::{Limiter, LimiterKind, Node, Pattern, Quant, SegPart, Segment};
+use crate::ast::{FSPattern, Limiter, LimiterKind, Node, Quant, SegPart, Segment};
 use crate::error::ParseError;
 
 use pest::Parser;
@@ -6,7 +6,7 @@ use pest::iterators::Pair;
 
 #[derive(pest_derive::Parser)]
 #[grammar = "pattern.pest"]
-pub struct PatternParser;
+pub struct FSPatternParser;
 
 fn parse_limiter_kind(s: &str) -> Result<LimiterKind, ParseError> {
     use LimiterKind::*;
@@ -125,8 +125,8 @@ fn parse_limiter_call(pair: Pair<Rule>) -> Result<Limiter, ParseError> {
     Ok(Limiter { kind, quant })
 }
 
-pub fn parse_pattern(input: &str) -> Result<Pattern, ParseError> {
-    let mut pairs = PatternParser::parse(Rule::pattern, input)
+pub fn parse_pattern(input: &str) -> Result<FSPattern, ParseError> {
+    let mut pairs = FSPatternParser::parse(Rule::pattern, input)
         .map_err(|_e| ParseError::new("TODO: translate pest error.".into()))?;
 
     let pattern_pair = pairs
@@ -148,7 +148,7 @@ pub fn parse_pattern(input: &str) -> Result<Pattern, ParseError> {
         }
     }
 
-    Ok(Pattern { nodes })
+    Ok(FSPattern { nodes })
 }
 
 fn parse_segment(pair: Pair<Rule>) -> Result<Segment, ParseError> {

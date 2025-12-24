@@ -36,7 +36,7 @@ allow file.txt
     let report = check_tree(root, Severity::Error).unwrap();
 
     assert!(report.is_allowed("file.txt"));
-    assert!(report.is_allowed("a"));
+    assert!(report.is_allowed("a/"));
     assert!(report.is_allowed("a/b"));
     assert!(report.is_allowed("a/b/c"));
     assert!(report.is_allowed("a/b/c/file.txt"));

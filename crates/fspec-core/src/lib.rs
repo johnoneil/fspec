@@ -12,7 +12,7 @@ use std::path::{Path, PathBuf};
 pub use error::Error;
 pub use report::{Diagnostic, Report, Status};
 pub use severity::Severity;
-pub use spec::{Component, Pattern, Rule, RuleKind, Segment};
+pub use spec::{FSEntry, FSPattern, Rule, RuleKind, Segment};
 
 use std::collections::HashMap;
 use std::collections::HashSet;
@@ -170,15 +170,15 @@ fn rel_components(rel: &Path) -> Option<Vec<String>> {
     Some(v)
 }
 
-fn pattern_matches_path(pat: &Pattern, rel: &Path, is_dir: bool) -> bool {
+fn pattern_matches_path(pat: &FSPattern, rel: &Path, is_dir: bool) -> bool {
     let path = match rel_components(rel) {
         Some(v) => v,
         None => return false,
     };
 
     match pat {
-        Pattern::Anchored(comps) => matches_components(comps, &path, is_dir, /*start*/ 0),
-        Pattern::Unanchored(comps) => {
+        FSPattern::Anchored(comps) => matches_components(comps, &path, is_dir, /*start*/ 0),
+        FSPattern::Unanchored(comps) => {
             // Try matching starting at any directory boundary.
             for start in 0..=path.len() {
                 if matches_components(comps, &path, is_dir, start) {
@@ -190,23 +190,23 @@ fn pattern_matches_path(pat: &Pattern, rel: &Path, is_dir: bool) -> bool {
     }
 }
 
-fn matches_components(comps: &[Component], path: &[String], is_dir: bool, start: usize) -> bool {
+fn matches_components(comps: &[FSEntry], path: &[String], is_dir: bool, start: usize) -> bool {
     // Quick “type” gate: pattern ending in Dir should only match dirs;
-    // pattern ending in Entry should only match non-dirs.
+    // pattern ending in FSEntry should only match non-dirs.
     if let Some(last) = comps.last() {
         match last {
-            Component::Dir(_) if !is_dir => return false,
-            Component::Entry(_) if is_dir => return false,
+            FSEntry::Dir(_) if !is_dir => return false,
+            FSEntry::File(_) if is_dir => return false,
             _ => {}
         }
     }
 
-    // Extract segments from components (Dir/Entry both consume one path element)
+    // Extract segments from components (Dir/FSEntry both consume one path element)
     let segs: Vec<&Segment> = comps
         .iter()
         .map(|c| match c {
-            Component::Dir(s) => s,
-            Component::Entry(s) => s,
+            FSEntry::Dir(s) => s,
+            FSEntry::File(s) => s,
         })
         .collect();
 

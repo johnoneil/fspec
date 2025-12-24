@@ -25,7 +25,7 @@ pub struct Limiter {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct Pattern {
+pub struct FSPattern {
     pub nodes: Vec<Node>,
 }
 

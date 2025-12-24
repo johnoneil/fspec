@@ -18,8 +18,8 @@ fn golden_last_rule_wins_reallow_inside_ignored_dir() {
     write_file(
         &root.join(".fspec"),
         r#"
-# ignore the whole subtree
-ignore /a
+# ignore the whole subtree (trailing slash is explicitly a dir).
+ignore /a/
 # but then re-allow one specific nested file (should win)
 allow /a/b/c/file.txt
 "#,

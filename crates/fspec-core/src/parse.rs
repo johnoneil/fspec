@@ -67,7 +67,7 @@ fn split_kw_owned(s: &str) -> Option<(RuleKind, String)> {
 mod tests {
     use super::*;
 
-    use crate::spec::{Pattern, Segment};
+    use crate::spec::{FSPattern, Segment};
 
     #[test]
     fn parses_basic_rules_smoke() {
@@ -98,7 +98,7 @@ mod tests {
 
     //     assert_eq!(
     //         rules[0].pattern,
-    //         Pattern::Unanchored(vec![Component::Entry(Segment::Lit(
+    //         FSPattern::Unanchored(vec![Component::FSEntry(Segment::Lit(
     //             "movies/Foo Bar (2001).mkv".to_string()
     //         ))])
     //     );

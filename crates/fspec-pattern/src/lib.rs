@@ -5,8 +5,8 @@ mod parser;
 
 use crate::error::ParseError;
 
-pub use ast::{Limiter, LimiterKind, Node, Pattern, Quant, SegPart, Segment};
+pub use ast::{FSPattern, Limiter, LimiterKind, Node, Quant, SegPart, Segment};
 
-pub fn parse_pattern(input: &str) -> Result<Pattern, ParseError> {
+pub fn parse_pattern(input: &str) -> Result<FSPattern, ParseError> {
     parser::parse_pattern(input)
 }

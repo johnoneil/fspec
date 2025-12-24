@@ -124,8 +124,8 @@ If multiple rules match a path, **the last matching rule wins**.
 
 ### 3. Rooted vs unanchored patterns
 
-* Patterns starting with `/` are **rooted** at the directory containing the `.fspec`.
-* Patterns without `/` are **unanchored** and may match anywhere.
+* FSPatterns starting with `/` are **rooted** at the directory containing the `.fspec`.
+* FSPatterns without `/` are **unanchored** and may match anywhere.
 
 ```fspec
 /bin        # only matches ./bin
@@ -164,13 +164,13 @@ You do not need to separately allow every directory component.
 
 ---
 
-## Pattern Language
+## FSPattern Language
 
-Patterns are path-like strings with literals, globs, and placeholders.
+FSPatterns are path-like strings with literals, globs, and placeholders.
 
 ### Globs
 
-| Pattern | Meaning                                |
+| FSPattern | Meaning                                |
 | ------- | -------------------------------------- |
 | `*`     | any characters within one path segment |
 | `**`    | zero or more path segments (recursive) |

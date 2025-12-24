@@ -26,44 +26,44 @@ pub struct Rule {
     pub kind: RuleKind,
 
     /// The parsed pattern describing which paths this rule applies to.
-    pub pattern: Pattern,
+    pub pattern: FSPattern,
 }
 
 /// A parsed path pattern.
 ///
-/// Patterns may be anchored (starting with `/`) or unanchored.
+/// FSPatterns may be anchored (starting with `/`) or unanchored.
 ///
 /// Example:
 ///   `/assets/*/*.png`  -> Anchored
 ///   `assets/*/*.png`   -> Unanchored
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Pattern {
-    /// Pattern must match from the filesystem root.
+pub enum FSPattern {
+    /// FSPattern must match from the filesystem root.
     /// (Leading `/` in the `.fspec` pattern.)
-    Anchored(Vec<Component>),
+    Anchored(Vec<FSEntry>),
 
-    /// Pattern matches relative to the root.
+    /// FSPattern matches relative to the root.
     /// (No leading `/` in the `.fspec` pattern.)
-    Unanchored(Vec<Component>),
+    Unanchored(Vec<FSEntry>),
 }
 
 /// One component of a path pattern, split on `/`.
 ///
-/// Each component describes what kind of filesystem entry
+/// Each FSEntry describes what kind of filesystem entry
 /// is expected at that position.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Component {
+pub enum FSEntry {
     /// This component must match a directory entry.
     ///
     /// Used for all non-final path components, and also for
     /// final components when the pattern ends with a `/`.
     Dir(Segment),
 
-    /// This component matches the final path entry.
+    /// This component matches a file.
     ///
     /// The entry may be a file or a directory, unless restricted
     /// by higher-level rules.
-    Entry(Segment),
+    File(Segment),
 }
 
 /// A single path segment matcher.
