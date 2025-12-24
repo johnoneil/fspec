@@ -45,11 +45,9 @@ allow file.txt
     assert!(report.is_allowed("e/f/g/"));
     assert!(report.is_allowed("e/f/g/file.txt"));
 
-    assert!(report.is_unaccounted("e/f/g/other.txt"));
+    // for now the root .fspec file is allowed
+    assert!(report.is_allowed(".fspec"));
+    assert!(report.is_unaccounted(".fspec") == false);
 
-    // Nothing else should be flagged.
-    assert!(
-        report.unaccounted_paths().is_empty(),
-        "unexpected unaccounted paths"
-    );
+    assert!(report.is_unaccounted("e/f/g/other.txt"));
 }

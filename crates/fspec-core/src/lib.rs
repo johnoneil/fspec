@@ -14,6 +14,11 @@ pub use report::{Diagnostic, Report, Status};
 pub use severity::Severity;
 pub use spec::{Component, Pattern, Rule, RuleKind, Segment};
 
+use std::collections::HashMap;
+use std::collections::HashSet;
+
+type Decisions = HashMap<PathBuf, Decision>; // rel paths
+
 #[derive(Debug, Default)]
 pub struct ClassifiedPaths {
     pub allowed_files: Vec<PathBuf>,
@@ -32,11 +37,20 @@ enum Decision {
     Unclassified,
 }
 
+// issues:
+// 1. we need to traverse the rules in order. if we traverse the tree, and check rules against it
+// we don't know if we're adhering to this.
+// 2. We also need on allowed leafs (dirs or files) to allow all the parent directories.
+// 3. are we also handling unanchored allows and ignores correctly?
+
 /// Walk the filesystem rooted at `root`, classifying each entry by the first matching rule.
 /// Directories that are classified as Ignore are not descended into.
 pub fn walk_and_classify(root: &Path, rules: &[Rule]) -> Result<ClassifiedPaths, Error> {
     let mut out = ClassifiedPaths::default();
     walk_dir(root, root, rules, &mut out)?;
+
+    promote_allowed_parents(&mut out); // <-- add this
+
     Ok(out)
 }
 
@@ -81,10 +95,14 @@ fn walk_dir(
                 Decision::Unclassified => out.unclassified_dirs.push(rel.to_path_buf()),
             }
 
-            // IMPORTANT: ignore dirs prune traversal
-            if decision != Decision::Ignore {
-                walk_dir(root, &path, rules, out)?;
-            }
+            // TODO: we could have real performance gains by more intelligently
+            // traversing the file tree and ignoring ignored directories,
+            // but for now we just walk everything to ensure we're applying rules correctly.
+            // The rationale is that "unanchored" allows might re-allow dir/files in previously
+            // ignored directory structures.
+            //if decision != Decision::Ignore {
+            walk_dir(root, &path, rules, out)?;
+            //}
         } else {
             match decision {
                 Decision::Ignore => out.ignored_files.push(rel.to_path_buf()),
@@ -97,8 +115,10 @@ fn walk_dir(
     Ok(())
 }
 
+// We decide based on "last rule wins" so we iterate rules in *reverse*.
+// This allows us to early bail on first match.
 fn decide(rel: &Path, is_dir: bool, rules: &[Rule]) -> Decision {
-    for rule in rules {
+    for rule in rules.iter().rev() {
         if pattern_matches_path(&rule.pattern, rel, is_dir) {
             return match rule.kind {
                 RuleKind::Ignore => Decision::Ignore,
@@ -107,6 +127,36 @@ fn decide(rel: &Path, is_dir: bool, rules: &[Rule]) -> Decision {
         }
     }
     Decision::Unclassified
+}
+
+fn promote_allowed_parents(classified: &mut ClassifiedPaths) {
+    let mut implied: HashSet<PathBuf> = HashSet::new();
+
+    // “leaf allowed” = allowed_files (and optionally allowed_dirs if you want)
+    for leaf in classified.allowed_files.iter() {
+        let mut cur = leaf.parent();
+
+        while let Some(p) = cur {
+            if p.as_os_str().is_empty() {
+                break; // reached relpath "root"
+            }
+            implied.insert(p.to_path_buf());
+            cur = p.parent();
+        }
+    }
+
+    // Remove from other dir buckets
+    classified.ignored_dirs.retain(|p| !implied.contains(p));
+    classified
+        .unclassified_dirs
+        .retain(|p| !implied.contains(p));
+
+    // Add to allowed_dirs (dedup)
+    let mut allowed_set: HashSet<PathBuf> = classified.allowed_dirs.drain(..).collect();
+    allowed_set.extend(implied);
+
+    classified.allowed_dirs = allowed_set.into_iter().collect();
+    classified.allowed_dirs.sort();
 }
 
 /// Convert a relative path into string components for matching.
@@ -232,7 +282,10 @@ pub fn check_tree(root: &Path, default_severity: Severity) -> Result<Report, Err
 
     // - walk filesystem
     // - classify paths
-    let classified = walk_and_classify(root, &spec_rules)?;
+    let mut classified = walk_and_classify(root, &spec_rules)?;
+    classified
+        .unclassified_files
+        .retain(|p| p != Path::new(".fspec"));
 
     eprintln!("{:#?}", classified);
 
@@ -269,6 +322,10 @@ pub fn check_tree(root: &Path, default_severity: Severity) -> Result<Report, Err
     {
         report.set_status(p.to_string_lossy().replace('\\', "/"), Status::Allowed);
     }
+
+    // TODO: In the future, support nested .fspec roots / isolation.
+    // For now, the controlling root .fspec is always implicitly allowed.
+    report.set_status(".fspec", Status::Allowed);
 
     Ok(report)
 
