@@ -1,6 +1,7 @@
 use crate::error::Error;
-use crate::pattern::parse_pattern_str;
 use crate::spec::{Rule, RuleKind};
+
+use crate::pattern::parse_pattern_str;
 
 pub(crate) fn parse_fspec(src: &str) -> Result<Vec<Rule>, Error> {
     let mut rules = Vec::new();
@@ -67,7 +68,7 @@ fn split_kw_owned(s: &str) -> Option<(RuleKind, String)> {
 mod tests {
     use super::*;
 
-    use crate::spec::{FSPattern, Segment};
+    use crate::spec::{FSEntry, FSPattern};
 
     #[test]
     fn parses_basic_rules_smoke() {

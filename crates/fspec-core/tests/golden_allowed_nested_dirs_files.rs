@@ -22,7 +22,7 @@ fn golden_allowed_nested_dirs_files() {
 allow /file.txt
 # allow a, b, c, d, *and* a/b/c/file.txt
 allow /a/b/c/file.txt
-# questionable behavior: allow any `file.txt`... but also its parent directories?
+# allow any file.txt *and* its parent directories.
 allow file.txt
 "#,
     );

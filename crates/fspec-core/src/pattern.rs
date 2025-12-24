@@ -1,80 +1,98 @@
 use crate::error::Error;
-use crate::spec::{FSEntry, FSPattern, Segment};
+use crate::spec::{DirType, FSEntry, FSPattern, FileType};
 
 pub(crate) fn parse_pattern_str(raw: &str, line: usize) -> Result<FSPattern, Error> {
-    let s = raw.trim();
-    if s.is_empty() {
-        return Err(Error::Parse {
-            line,
-            col: 1,
-            msg: "empty pattern".into(),
-        });
+    let s0 = raw.trim();
+    if s0.is_empty() {
+        return Err(parse_err(line, 1, "empty pattern"));
     }
 
     // Anchored vs unanchored.
-    let (pat_kind, s) = if let Some(rest) = s.strip_prefix('/') {
-        ("anchored", rest)
+    let (anchored, mut s, base_col) = if let Some(rest) = s0.strip_prefix('/') {
+        (true, rest, 2) // we consumed '/'
     } else {
-        ("unanchored", s)
+        (false, s0, 1)
     };
 
-    // Trailing slash means the last component is a directory component.
-    let (dir_trailing, s) = if let Some(rest) = s.strip_suffix('/') {
-        (true, rest)
-    } else {
-        (false, s)
-    };
+    // Directory vs file is determined by trailing slash.
+    let ends_with_slash = s.ends_with('/');
+    if ends_with_slash {
+        // Strip exactly one trailing slash; anything else will be handled by empty-segment checks.
+        s = &s[..s.len() - 1];
+    }
 
-    // After stripping leading/trailing '/', pattern can't be empty.
     if s.is_empty() {
-        return Err(Error::Parse {
+        return Err(parse_err(
             line,
-            col: 1,
-            msg: "pattern cannot be just '/'".into(),
-        });
+            base_col,
+            "pattern must not be just '/' (no path components)",
+        ));
     }
 
-    // Split on '/', disallow empty segments (e.g., "a//b").
+    // Split into segments. We disallow empty segments like `a//b`.
     let parts: Vec<&str> = s.split('/').collect();
-    if parts.iter().any(|p| p.is_empty()) {
-        return Err(Error::Parse {
-            line,
-            col: 1,
-            msg: "empty path segment (did you write '//'?)".into(),
-        });
-    }
-
-    let mut comps: Vec<FSEntry> = Vec::with_capacity(parts.len());
-
     for (i, part) in parts.iter().enumerate() {
-        let seg = match *part {
-            "*" => Segment::Star,
-            "**" => Segment::DoubleStar,
-            lit => Segment::Lit(lit.to_string()),
-        };
-
-        let is_last = i + 1 == parts.len();
-        if is_last {
-            if dir_trailing {
-                comps.push(FSEntry::Dir(seg));
-            } else {
-                comps.push(FSEntry::File(seg));
-            }
-        } else {
-            comps.push(FSEntry::Dir(seg));
+        if part.is_empty() {
+            // Column: approximate start of this empty segment.
+            // (Good enough; you can refine later if you want exact columns.)
+            let col = base_col + parts[..i].iter().map(|p| p.len() + 1).sum::<usize>();
+            return Err(parse_err(line, col, "empty path segment (// not allowed)"));
         }
     }
 
-    Ok(match pat_kind {
-        "anchored" => FSPattern::Anchored(comps),
-        _ => FSPattern::Unanchored(comps),
+    let last_idx = parts.len() - 1;
+    let mut entries = Vec::with_capacity(parts.len());
+
+    for (i, part) in parts.iter().enumerate() {
+        let is_last = i == last_idx;
+
+        if !is_last {
+            entries.push(FSEntry::Dir(parse_dir(part)));
+            continue;
+        }
+
+        // Final component depends on trailing slash.
+        if ends_with_slash {
+            entries.push(FSEntry::Dir(parse_dir(part)));
+        } else {
+            entries.push(FSEntry::File(parse_file(part)));
+        }
+    }
+
+    Ok(if anchored {
+        FSPattern::Anchored(entries)
+    } else {
+        FSPattern::Unanchored(entries)
     })
+}
+
+fn parse_dir(s: &str) -> DirType {
+    match s {
+        "*" => DirType::Star,
+        "**" => DirType::DoubleStar,
+        _ => DirType::Lit(s.to_string()),
+    }
+}
+
+fn parse_file(s: &str) -> FileType {
+    match s {
+        "*" => FileType::Star,
+        _ => FileType::Lit(s.to_string()),
+    }
+}
+
+fn parse_err(line: usize, col: usize, msg: impl Into<String>) -> Error {
+    Error::Parse {
+        line,
+        col,
+        msg: msg.into(),
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::spec::{FSEntry::*, FSPattern::*, Segment::*};
+    use crate::spec::{DirType, FSEntry::*, FSEntry::*, FSPattern::*, FileType};
 
     #[test]
     fn unanchored_dir_then_entry() {
@@ -82,9 +100,9 @@ mod tests {
         assert_eq!(
             p,
             Unanchored(vec![
-                Dir(Lit("assets".into())),
-                Dir(Star),
-                File(Lit("*.png".into()))
+                Dir(DirType::Lit("assets".into())),
+                Dir(DirType::Star),
+                File(FileType::Lit("*.png".into()))
             ])
         );
     }
@@ -92,7 +110,10 @@ mod tests {
     #[test]
     fn trailing_slash_makes_last_component_dir() {
         let p = parse_pattern_str("assets/*/", 1).unwrap();
-        assert_eq!(p, Unanchored(vec![Dir(Lit("assets".into())), Dir(Star)]));
+        assert_eq!(
+            p,
+            Unanchored(vec![Dir(DirType::Lit("assets".into())), Dir(DirType::Star)])
+        );
     }
 
     #[test]
@@ -101,9 +122,9 @@ mod tests {
         assert_eq!(
             p,
             Anchored(vec![
-                Dir(Lit("assets".into())),
-                Dir(DoubleStar),
-                File(Lit("x".into()))
+                Dir(DirType::Lit("assets".into())),
+                Dir(DirType::DoubleStar),
+                File(FileType::Lit("x".into()))
             ])
         );
     }
@@ -119,9 +140,9 @@ mod tests {
         assert_eq!(
             p,
             Anchored(vec![
-                Dir(Lit("assets".into())),
-                Dir(Lit("this dir has spaces ".into())),
-                File(Lit("x".into()))
+                Dir(DirType::Lit("assets".into())),
+                Dir(DirType::Lit("this dir has spaces ".into())),
+                File(FileType::Lit("x".into()))
             ])
         );
     }
@@ -132,9 +153,9 @@ mod tests {
         assert_eq!(
             p,
             Anchored(vec![
-                Dir(Lit("assets".into())),
-                Dir(Lit("approved".into())),
-                File(Lit("My mom named this file.png".into()))
+                Dir(DirType::Lit("assets".into())),
+                Dir(DirType::Lit("approved".into())),
+                File(FileType::Lit("My mom named this file.png".into()))
             ])
         );
     }

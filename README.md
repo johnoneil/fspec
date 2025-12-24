@@ -52,7 +52,7 @@ This allows structured organization *and* transitional “unsorted” areas and 
 
 ## Example: Rust Workspace
 
-`fspec` can also be used to enforce file structure and naming in code repositories, though tht is not its focus.
+`fspec` can also be used to enforce file structure and naming in code repositories, though that is not its focus.
 
 ```fspec
 # ignore build artifacts everywhere
@@ -77,8 +77,6 @@ Anything not matching these rules will be reported.
 
 ## The `.fspec` File Format (v1)
 
-The `.fspec` file format was intentionally pattered after `.gitignore` though with much more functionality. But while `.gitignore` is merely an ignore list, `.fspec` is an allow/ignore list.
-
 An `.fspec` file is a **line-based specification**.
 
 ### Comments
@@ -93,18 +91,21 @@ Each non-comment line is a rule:
 
 | Prefix   | Meaning  |
 | -------- | -------- |
-| `+`      | `allow`  |
-| `allow`  | `allow`  |
-| `-`      | `ignore` |
-| `ignore` | `ignore` |
+| `allow`  | Allows a given directory file and its ancestors to exist without error.  |
+| `ignore` | Ignores a file or directory, removing it and all its possible descendants from checks.  |
 
 Examples:
 
 ```fspec
-+ {snake_case}.rs
-+ /Cargo.toml
-- target/
-ignore .git/
+# allow the file named `Cargo.toml` file at fspec root.
+allow /Cargo.toml
+# allow a rust file anywhere as long as its filename is snake_case
+allow {snake_case}.rs
+# Ignore the .git directory at fspec root.
+ignore /.git/
+# ignore any directory named `target` anywhere and all its descendants.
+ignore target/
+
 ```
 
 ---
@@ -115,16 +116,16 @@ These rules are fundamental and should be considered *part of the spec*:
 
 ### 1. Default policy
 
-Anything not matched by an `allow` rule is reported (warning or error).
+Anything not ignored or matched by an `allow` rule is reported (warning or error).
 
 ### 2. Order matters
 
 Rules are evaluated **top to bottom**.
 If multiple rules match a path, **the last matching rule wins**.
 
-### 3. Rooted vs unanchored patterns
+### 3. Anchored vs unanchored patterns
 
-* FSPatterns starting with `/` are **rooted** at the directory containing the `.fspec`.
+* FSPatterns starting with `/` are **anchored** at the directory containing the `.fspec`.
 * FSPatterns without `/` are **unanchored** and may match anywhere.
 
 ```fspec
@@ -134,12 +135,14 @@ bin         # matches bin at any depth
 
 ### 4. Ignore rules
 
-* `ignore` applies to **files or directories**
+* `ignore` prevents fspec applying rules to ignored file or directory, *and all its descendants*.
 * A trailing `/` means *directory-only*
 
 ```fspec
-- bin        # ignore file or directory named "bin"
-- bin/       # ignore directory "bin" and everything under it
+ignore /bin/    # ignore a *directory* named "bin" at fspec root (anchored).
+ignore /bin     # ignore a file named "bin" at fspec root (anchored)
+ignore bin/     # ignore a directory named "bin" anywhere.
+ignore bin      # ignore a *file* named "bin" anywhere.
 ```
 
 ### 5. Ignored-subtree barrier
@@ -147,12 +150,12 @@ bin         # matches bin at any depth
 Ignored directories form a barrier:
 
 * **Unanchored `allow` rules do NOT apply inside ignored directories**
-* **Rooted `allow` rules MAY re-allow specific paths inside ignored directories**
+* **Anchored `allow` rules MAY re-allow specific paths inside ignored directories**
 
 ```fspec
-- /bin/
-{snake_case}.rs      # does NOT re-allow /bin/foo.rs
-+ /bin/tool.rs       # DOES re-allow this file (with a warning)
+ignore /bin/
+allow {snake_case}.rs   # does NOT re-allow /bin/foo.rs
+allow /bin/tool.rs      # DOES re-allow this file (with a warning)
 ```
 
 Re-allowing files inside ignored directories is permitted but should emit a warning.
@@ -161,6 +164,12 @@ Re-allowing files inside ignored directories is permitted but should emit a warn
 
 If a file or directory is allowed, the directories required to reach it are considered **structurally allowed**.
 You do not need to separately allow every directory component.
+
+### 7. Directory/file name collisions
+
+Files which pass directory naming specs are emitted as warnings by default.
+
+Directories which pass file naming specs are emitted as warnings by default.
 
 ---
 
