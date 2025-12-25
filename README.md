@@ -14,6 +14,7 @@ This is especially useful for:
 * build artifacts and outputs
 * long-lived project folders
 * repositories where naming and placement conventions matter
+* providing a deterministic filesystem definition to teams and LLMs for auditing.
 
 ---
 
@@ -24,6 +25,7 @@ This is especially useful for:
 * Filesystem structure is validated *without* scripts, regex soup, or tribal knowledge.
 * The format is intentionally small and constrained.
 * Additions to the `.fspec` are easy, but should be discussed by shareholders. This allows filesystem conventions to be subject to a carefully controlled review.
+* LLMs will plainly be heavily involved in maintenance of large filesystems. `.fspec` allows a way to explicitly define filesystem structure and file naming conventions such that LLMs (and human teams) can make informed decisions.
 
 ---
 
@@ -33,20 +35,20 @@ This is especially useful for:
 
 ```fspec
 # movies
-+ /movies/{year:int(4)}/{snake_case}_{year}.{ext:mp4|mkv}
-+ /movies/unsorted/**/*.{ext:mp4|mkv}
+allow /movies/{year:int(4)}/{snake_case}_{year}.{ext:mp4|mkv}
+allow /movies/unsorted/**/*.{ext:mp4|mkv}
 
 # series
-+ /series/{year:int(4)}/{name:PascalCase}/season_{season:int(2+)}/{name}.s{season}e{episode:int(2+)}.{ext:mp4|mkv}
-+ /series/unsorted/**/*.{ext:mp4|mkv}
+allow /series/{year:int(4)}/{name:PascalCase}/season_{season:int(2+)}/{name}.s{season}e{episode:int(2+)}.{ext:mp4|mkv}
+allow /series/unsorted/**/*.{ext:mp4|mkv}
 
 # artwork
-+ /movies/**/{snake_case}_{year}_thumbnail.png
-+ /series/{year:int(4)}/{name:PascalCase}/{name}_thumbnail.png
-+ /series/{year:int(4)}/{name:PascalCase}/season_{season:int(2+)}/{name}.s{season}e{episode:int(2+)}_thumbnail.png
+allow /movies/**/{snake_case}_{year}_thumbnail.png
+allow /series/{year:int(4)}/{name:PascalCase}/{name}_thumbnail.png
+allow /series/{year:int(4)}/{name:PascalCase}/season_{season:int(2+)}/{name}.s{season}e{episode:int(2+)}_thumbnail.png
 ```
 
-This allows structured organization *and* transitional “unsorted” areas and is especially good at detecting deviations which creep in via hand naming of files.
+This allows structured organization and transitional “unsorted” areas and is especially good at detecting deviations which creep in via hand naming of files.
 
 ---
 
@@ -56,19 +58,19 @@ This allows structured organization *and* transitional “unsorted” areas and 
 
 ```fspec
 # ignore build artifacts everywhere
-- target/
+ignore target/
 
 # root workspace files
-+ /Cargo.toml
-+ /Cargo.lock
+allow /Cargo.toml
+allow /Cargo.lock
 
 # Rust source must be snake_case
-{snake_case}.rs
+allow {snake_case}.rs
 
 # crates layout
-+ /crates/{crate:kebab-case}/Cargo.toml
-+ /crates/{crate:kebab-case}/src/**/
-+ /crates/{crate:kebab-case}/src/**/{snake_case}.rs
+allow /crates/{crate:kebab-case}/Cargo.toml
+allow /crates/{crate:kebab-case}/src/**/
+allow /crates/{crate:kebab-case}/src/**/{snake_case}.rs
 ```
 
 Anything not matching these rules will be reported.
@@ -210,6 +212,7 @@ Common built-in limiters. These ensure path or file segments match certain patte
 * `kebab-case`
 * `int(n)` (exact width)
 * `int(n+)` (at least n digits)
+* `int(n,m)` (range of integer values)
 
 Examples:
 
