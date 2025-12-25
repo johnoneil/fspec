@@ -125,6 +125,9 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
             ctx.rel.push(name.as_ref());
             ctx.depth += 1;
 
+            // for now, just add everything to allowed.
+            ctx.walk_output.allowed_dirs.push(ctx.rel.clone());
+
             // Debug: directory child
             eprintln!("{}+ dir  {}", indent(ctx.depth), ctx.rel.display());
 
@@ -137,12 +140,10 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
             ctx.live_rule_idxs = saved_live;
             ctx.inherited = saved_inh;
         } else if ty.is_file() {
-            // --- Option A hook: decide file using ctx + filename ---
-            //
-            // Eventually:
-            // let decision = decide_file(ctx, rules, &name);
-            //
-            // For now: just print.
+            // for now, just add everything to allowed.
+            ctx.walk_output
+                .allowed_files
+                .push(ctx.rel.join(name.as_ref()));
 
             eprintln!(
                 "{}- file {}",

@@ -38,12 +38,10 @@ pub fn check_tree(root: &Path, default_severity: Severity) -> Result<Report, Err
 
     let walk_output = walk::walk_tree(root, &spec_rules)?;
 
+    // DEBUG: remove later
+    eprintln!("{:#?}", walk_output);
+
     let report = Report::from_walk_output(&walk_output);
 
     Ok(report)
-
-    // //TEMPORARY: return early until next stages exist
-    // Err(Error::Semantic {
-    //     msg: "Unimplemented error".into(),
-    // })
 }
