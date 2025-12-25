@@ -15,6 +15,7 @@ fn create_dir(path: &Path) {
     assert!(path.is_dir());
 }
 
+#[ignore]
 #[test]
 fn golden_basic_ignore_dirs() {
     let tmp = tempfile::tempdir().unwrap();

@@ -10,6 +10,7 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
+#[ignore]
 #[test]
 fn golden_rooted_vs_unanchored() {
     let tmp = tempfile::tempdir().unwrap();

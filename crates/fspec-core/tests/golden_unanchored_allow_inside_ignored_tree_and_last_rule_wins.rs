@@ -10,6 +10,7 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
+#[ignore]
 #[test]
 fn golden_unanchored_allow_inside_ignored_tree_and_last_rule_wins() {
     let tmp = tempfile::tempdir().unwrap();

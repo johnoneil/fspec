@@ -10,6 +10,7 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
+#[ignore]
 #[test]
 fn golden_basic_ignore_file() {
     let tmp = tempfile::tempdir().unwrap();

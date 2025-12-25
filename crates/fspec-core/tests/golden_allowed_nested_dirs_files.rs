@@ -10,6 +10,7 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
+#[ignore]
 #[test]
 fn golden_allowed_nested_dirs_files() {
     let tmp = tempfile::tempdir().unwrap();

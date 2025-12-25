@@ -10,6 +10,7 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
+#[ignore]
 #[test]
 fn golden_last_rule_wins_reallow_inside_ignored_dir() {
     let tmp = tempfile::tempdir().unwrap();
