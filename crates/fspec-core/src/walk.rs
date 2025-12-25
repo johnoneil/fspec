@@ -3,6 +3,16 @@ use std::path::{Path, PathBuf};
 
 use crate::{Error, Rule};
 
+#[derive(Debug, Clone, Default)]
+pub struct WalkOutput {
+    pub allowed_files: Vec<PathBuf>,
+    pub allowed_dirs: Vec<PathBuf>,
+    pub ignored_files: Vec<PathBuf>,
+    pub ignored_dirs: Vec<PathBuf>,
+    pub unaccounted_files: Vec<PathBuf>,
+    pub unaccounted_dirs: Vec<PathBuf>,
+}
+
 /// Per-directory traversal context.
 ///
 /// This is intentionally "empty" today, but shaped so it can evolve into
@@ -19,6 +29,9 @@ pub struct WalkCtx {
 
     /// Depth from root. Useful for debug indentation.
     pub depth: usize,
+
+    /// The returned list of allowed/ignored/unaccounted for dirs+files
+    pub walk_output: WalkOutput,
 
     /// Placeholder for Option A: the set of rule indices still "in play" in this subtree.
     /// Today we just carry it forward unchanged.
@@ -37,17 +50,20 @@ pub enum InheritedState {
     // etc.
 }
 
-pub fn walk_tree(root: &Path, rules: &[Rule]) -> Result<(), Error> {
+pub fn walk_tree(root: &Path, rules: &[Rule]) -> Result<WalkOutput, Error> {
     let mut ctx = WalkCtx {
         root: root.to_path_buf(),
         rel: PathBuf::new(),
         depth: 0,
+        walk_output: WalkOutput::default(),
         live_rule_idxs: (0..rules.len()).collect(),
         inherited: InheritedState::None,
     };
 
     eprintln!("walk: start at {}", root.display());
-    walk_dir(&mut ctx, rules)
+    walk_dir(&mut ctx, rules)?;
+
+    Ok(ctx.walk_output)
 }
 
 /// Walk a directory with a mutable context representing "where we are".

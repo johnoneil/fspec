@@ -14,6 +14,7 @@ use std::path::{Path, PathBuf};
 pub use error::Error;
 pub use severity::Severity;
 pub use spec::{DirType, FSEntry, FSPattern, FileType, Rule, RuleKind};
+pub use walk::{WalkCtx, WalkOutput};
 
 pub fn check_tree(root: &Path, default_severity: Severity) -> Result<Report, Error> {
     // --- parse .fspec ---
@@ -35,10 +36,14 @@ pub fn check_tree(root: &Path, default_severity: Severity) -> Result<Report, Err
     // DEBUG: remove later.
     eprintln!("{:#?}", spec_rules);
 
-    walk::walk_tree(root, &spec_rules)?;
+    let walk_output = walk::walk_tree(root, &spec_rules)?;
 
-    //TEMPORARY: return early until next stages exist
-    Err(Error::Semantic {
-        msg: "Unimplemented error".into(),
-    })
+    let report = Report::from_walk_output(&walk_output);
+
+    Ok(report)
+
+    // //TEMPORARY: return early until next stages exist
+    // Err(Error::Semantic {
+    //     msg: "Unimplemented error".into(),
+    // })
 }
