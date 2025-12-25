@@ -2,7 +2,7 @@ use std::path::Path;
 
 use crate::spec::{DirType, FSEntry, FSPattern, FileType, Rule, RuleKind};
 
-pub fn matches_anchored_file(rule: &Rule, path: &Path) -> bool {
+pub(crate) fn matches_allowed_anchored_file(rule: &Rule, path: &Path) -> bool {
     // 1. Must be an allow rule
     if rule.kind != RuleKind::Allow {
         return false;
@@ -50,7 +50,7 @@ pub fn matches_anchored_file(rule: &Rule, path: &Path) -> bool {
     true
 }
 
-pub fn matches_anchored_dir(rule: &Rule, path: &Path) -> bool {
+pub(crate) fn matches_allowed_anchored_dir(rule: &Rule, path: &Path) -> bool {
     // 1. Must be an allow rule
     if rule.kind != RuleKind::Allow {
         return false;

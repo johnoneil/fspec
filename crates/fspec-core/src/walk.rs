@@ -1,5 +1,5 @@
-use crate::matcher::matches_anchored_dir;
-use crate::matcher::matches_anchored_file;
+use crate::matcher::matches_allowed_anchored_dir;
+use crate::matcher::matches_allowed_anchored_file;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -132,7 +132,10 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
 
             let rel_path = ctx.rel.clone();
 
-            if rules.iter().any(|r| matches_anchored_dir(r, &rel_path)) {
+            if rules
+                .iter()
+                .any(|r| matches_allowed_anchored_dir(r, &rel_path))
+            {
                 ctx.walk_output.allowed_dirs.push(rel_path);
             } else {
                 ctx.walk_output.unaccounted_dirs.push(rel_path);
@@ -157,7 +160,10 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
 
             let rel_path = ctx.rel.join(name.as_ref());
 
-            if rules.iter().any(|r| matches_anchored_file(r, &rel_path)) {
+            if rules
+                .iter()
+                .any(|r| matches_allowed_anchored_file(r, &rel_path))
+            {
                 ctx.walk_output.allowed_files.push(rel_path);
             } else {
                 ctx.walk_output.unaccounted_files.push(rel_path);
