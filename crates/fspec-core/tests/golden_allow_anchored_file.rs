@@ -11,7 +11,7 @@ fn write_file(path: &Path, contents: &str) {
 }
 
 #[test]
-fn golden_basic_all_allowed() {
+fn golden_allow_anchored_files() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
 
