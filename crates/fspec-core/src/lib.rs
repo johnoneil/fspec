@@ -4,6 +4,7 @@ mod pattern;
 mod report;
 mod severity;
 mod spec;
+mod walk;
 
 use parse::parse_fspec;
 use report::Report;
@@ -33,6 +34,8 @@ pub fn check_tree(root: &Path, default_severity: Severity) -> Result<Report, Err
 
     // DEBUG: remove later.
     eprintln!("{:#?}", spec_rules);
+
+    walk::walk_tree(root, &spec_rules)?;
 
     //TEMPORARY: return early until next stages exist
     Err(Error::Semantic {
