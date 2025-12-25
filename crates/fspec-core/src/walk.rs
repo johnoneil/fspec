@@ -1,3 +1,4 @@
+use crate::matcher::matches_anchored_file;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -140,10 +141,18 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
             ctx.live_rule_idxs = saved_live;
             ctx.inherited = saved_inh;
         } else if ty.is_file() {
-            // for now, just add everything to allowed.
-            ctx.walk_output
-                .allowed_files
-                .push(ctx.rel.join(name.as_ref()));
+            // DEBUG: just add everything to allowed.
+            // ctx.walk_output
+            //     .allowed_files
+            //     .push(ctx.rel.join(name.as_ref()));
+
+            let rel_path = ctx.rel.join(name.as_ref());
+
+            if rules.iter().any(|r| matches_anchored_file(r, &rel_path)) {
+                ctx.walk_output.allowed_files.push(rel_path);
+            } else {
+                ctx.walk_output.unaccounted_files.push(rel_path);
+            }
 
             eprintln!(
                 "{}- file {}",

@@ -28,5 +28,5 @@ allow /allowed.txt
     let report = check_tree(root, Severity::Error).unwrap();
 
     assert!(report.is_allowed("/allowed.txt"));
-    assert!(report.is_unaccounted("/unaccounted.rs"));
+    assert!(report.is_unaccounted("/unaccounted.txt"));
 }

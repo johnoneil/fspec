@@ -1,4 +1,5 @@
 mod error;
+mod matcher;
 mod parse;
 mod pattern;
 mod report;
@@ -12,6 +13,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 pub use error::Error;
+pub use matcher::matches_anchored_file;
 pub use severity::Severity;
 pub use spec::{DirType, FSEntry, FSPattern, FileType, Rule, RuleKind};
 pub use walk::{WalkCtx, WalkOutput};
