@@ -24,14 +24,20 @@ fn golden_allow_anchored_dir() {
         &root.join(".fspec"),
         r#"
 allow /allowed/
+allow /all/ancestors/allowed/too/
 "#,
     );
 
     create_dir(&root.join("allowed"));
+    create_dir(&root.join("all/ancestors/allowed/too"));
     create_dir(&root.join("unaccounted"));
 
     let report = check_tree(root, Severity::Error).unwrap();
 
     assert!(report.is_allowed("/allowed/"));
+    assert!(report.is_allowed("/all"));
+    assert!(report.is_allowed("/all/ancestors"));
+    assert!(report.is_allowed("/all/ancestors/allowed"));
+    assert!(report.is_allowed("/all/ancestors/allowed/too"));
     assert!(report.is_unaccounted("/unaccounted/"));
 }

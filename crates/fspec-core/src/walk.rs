@@ -15,6 +15,63 @@ pub struct WalkOutput {
     pub unaccounted_dirs: Vec<PathBuf>,
 }
 
+impl WalkOutput {
+    pub fn allow_with_ancestors(&mut self, path: &Path) {
+        // 1) allow the path itself
+        if path.extension().is_some() {
+            if !self.allowed_files.contains(&path.to_path_buf()) {
+                self.allowed_files.push(path.to_path_buf());
+            }
+            self.unaccounted_files.retain(|p| p != path);
+        } else {
+            if !self.allowed_dirs.contains(&path.to_path_buf()) {
+                self.allowed_dirs.push(path.to_path_buf());
+            }
+            self.unaccounted_dirs.retain(|p| p != path);
+        }
+
+        // 2) walk ancestors (dirs only)
+        let mut cur = path.parent();
+
+        while let Some(dir) = cur {
+            let pb = dir.to_path_buf();
+
+            if !self.allowed_dirs.contains(&pb) {
+                self.allowed_dirs.push(pb.clone());
+            }
+
+            self.unaccounted_dirs.retain(|p| p != &pb);
+
+            cur = dir.parent();
+        }
+    }
+
+    pub fn mark_unaccounted_dir(&mut self, path: &Path) {
+        let pb = path.to_path_buf();
+
+        // Don't mark if already justified
+        if self.allowed_dirs.contains(&pb) || self.ignored_dirs.contains(&pb) {
+            return;
+        }
+
+        if !self.unaccounted_dirs.contains(&pb) {
+            self.unaccounted_dirs.push(pb);
+        }
+    }
+
+    pub fn mark_unaccounted_file(&mut self, path: &Path) {
+        let pb = path.to_path_buf();
+
+        if self.allowed_files.contains(&pb) || self.ignored_files.contains(&pb) {
+            return;
+        }
+
+        if !self.unaccounted_files.contains(&pb) {
+            self.unaccounted_files.push(pb);
+        }
+    }
+}
+
 /// Per-directory traversal context.
 ///
 /// This is intentionally "empty" today, but shaped so it can evolve into
@@ -136,9 +193,9 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
                 .iter()
                 .any(|r| matches_allowed_anchored_dir(r, &rel_path))
             {
-                ctx.walk_output.allowed_dirs.push(rel_path);
+                ctx.walk_output.allow_with_ancestors(&rel_path);
             } else {
-                ctx.walk_output.unaccounted_dirs.push(rel_path);
+                ctx.walk_output.mark_unaccounted_dir(&rel_path);
             }
 
             // Debug: directory child
@@ -164,9 +221,9 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
                 .iter()
                 .any(|r| matches_allowed_anchored_file(r, &rel_path))
             {
-                ctx.walk_output.allowed_files.push(rel_path);
+                ctx.walk_output.allow_with_ancestors(&rel_path);
             } else {
-                ctx.walk_output.unaccounted_files.push(rel_path);
+                ctx.walk_output.mark_unaccounted_file(&rel_path);
             }
 
             eprintln!(

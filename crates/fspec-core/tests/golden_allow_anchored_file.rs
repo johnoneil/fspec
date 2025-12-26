@@ -19,14 +19,25 @@ fn golden_allow_anchored_files() {
         &root.join(".fspec"),
         r#"
 allow /allowed.txt
+allow /all/ancestors/are/also.allowed.txt
 "#,
     );
 
     write_file(&root.join("allowed.txt"), "dummy_file");
+    write_file(
+        &root.join("all/ancestors/are/also.allowed.txt"),
+        "dummy_file",
+    );
     write_file(&root.join("unaccounted.txt"), "dummy_file");
 
     let report = check_tree(root, Severity::Error).unwrap();
 
     assert!(report.is_allowed("/allowed.txt"));
+
+    assert!(report.is_allowed("/all"));
+    assert!(report.is_allowed("/all/ancestors"));
+    assert!(report.is_allowed("/all/ancestors/are"));
+    assert!(report.is_allowed("/all/ancestors/are/also.allowed.txt"));
+
     assert!(report.is_unaccounted("/unaccounted.txt"));
 }
