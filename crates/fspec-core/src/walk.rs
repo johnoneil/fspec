@@ -1,5 +1,6 @@
 use crate::matcher::matches_allowed_anchored_dir;
 use crate::matcher::matches_allowed_anchored_file;
+use crate::spec::RuleKind;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -184,18 +185,11 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
             ctx.rel.push(name.as_ref());
             ctx.depth += 1;
 
-            // DEBUG: Just add everything to allowed.
-            //ctx.walk_output.allowed_dirs.push(ctx.rel.clone());
-
             let rel_path = ctx.rel.clone();
 
-            if rules
-                .iter()
-                .any(|r| matches_allowed_anchored_dir(r, &rel_path))
-            {
-                ctx.walk_output.allow_with_ancestors(&rel_path);
-            } else {
-                ctx.walk_output.mark_unaccounted_dir(&rel_path);
+            match classify_entry_last_wins(ctx, rules, &rel_path, EntryKind::Dir) {
+                Verdict::Allow { .. } => ctx.walk_output.allow_with_ancestors(&rel_path),
+                Verdict::Unaccounted => ctx.walk_output.mark_unaccounted_dir(&rel_path),
             }
 
             // Debug: directory child
@@ -210,20 +204,11 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
             ctx.live_rule_idxs = saved_live;
             ctx.inherited = saved_inh;
         } else if ty.is_file() {
-            // DEBUG: just add everything to allowed.
-            // ctx.walk_output
-            //     .allowed_files
-            //     .push(ctx.rel.join(name.as_ref()));
-
             let rel_path = ctx.rel.join(name.as_ref());
 
-            if rules
-                .iter()
-                .any(|r| matches_allowed_anchored_file(r, &rel_path))
-            {
-                ctx.walk_output.allow_with_ancestors(&rel_path);
-            } else {
-                ctx.walk_output.mark_unaccounted_file(&rel_path);
+            match classify_entry_last_wins(&ctx, rules, &rel_path, EntryKind::File) {
+                Verdict::Allow { .. } => ctx.walk_output.allow_with_ancestors(&rel_path),
+                Verdict::Unaccounted => ctx.walk_output.mark_unaccounted_file(&rel_path),
             }
 
             eprintln!(
@@ -244,6 +229,69 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
 
     debug_exit(ctx, &abs);
     Ok(())
+}
+
+#[derive(Debug, Clone, Copy)]
+enum EntryKind {
+    File,
+    Dir,
+}
+
+#[derive(Debug, Clone, Copy)]
+enum Verdict {
+    Allow { rule_idx: usize },
+    // Ignore { rule_idx: usize }, // later
+    // IgnoredByInheritance { rule_idx: usize }, // later
+    Unaccounted,
+}
+
+fn classify_entry_last_wins(
+    ctx: &WalkCtx,
+    rules: &[Rule],
+    rel_path: &Path,
+    kind: EntryKind,
+) -> Verdict {
+    // 0) inheritance gate (stub for now)
+    // Later this becomes:
+    // if ctx.inherited.is_ignored() { return Verdict::IgnoredByInheritance { rule_idx: ... } }
+    if false {
+        return Verdict::Unaccounted; // stub
+    }
+
+    // 1) last rule wins: scan from bottom to top over live rules
+    for &rule_idx in ctx.live_rule_idxs.iter().rev() {
+        let r = &rules[rule_idx];
+
+        // 2) extensible dispatch over rule kind + pattern kind + entry kind
+        //
+        // Today: only "allow + anchored + (dir|file)" exists.
+        // Tomorrow: add ignore, unanchored, etc, in this same match ladder.
+
+        match (r.kind, kind) {
+            (RuleKind::Allow, EntryKind::Dir) => {
+                if matches_allowed_anchored_dir(r, rel_path) {
+                    return Verdict::Allow { rule_idx };
+                }
+                // later:
+                // if matches_allowed_unanchored_dir(r, rel_path) { ... }
+            }
+
+            (RuleKind::Allow, EntryKind::File) => {
+                if matches_allowed_anchored_file(r, rel_path) {
+                    return Verdict::Allow { rule_idx };
+                }
+                // later:
+                // if matches_allowed_unanchored_file(r, rel_path) { ... }
+            }
+
+            // later:
+            // (RuleKind::Ignore, EntryKind::Dir) => { ... }
+            // (RuleKind::Ignore, EntryKind::File) => { ... }
+            _ => {}
+        }
+    }
+
+    Verdict::Unaccounted
 }
 
 fn debug_enter(ctx: &WalkCtx, abs: &Path) {
