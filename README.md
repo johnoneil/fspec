@@ -242,6 +242,9 @@ fspec is intentionally staged. Not all features need to exist at once.
 * walk filesystem
 * classify paths as allowed / ignored / unaccounted
 * report violations
+* permit alternate syntaxes
+  * optionally omit `allow` command.
+  * use `./` to mean anchored allow/ignore.
 
 ### Level 1 — Extraction
 
@@ -266,6 +269,7 @@ fspec is intentionally staged. Not all features need to exist at once.
 * hierarchical `.fspec` inheritance
 * dependency / freshness rules
 * documentation and tooling generation
+* allow "permissive" or less strict mode as default where lack of trailing slash `xxx/` can be interpreted as either a file or directory like gitignore et al.
 
 ---
 
