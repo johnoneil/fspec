@@ -1,5 +1,7 @@
 use crate::matcher::matches_allowed_anchored_dir;
 use crate::matcher::matches_allowed_anchored_file;
+use crate::matcher::matches_ignored_anchored_dir;
+use crate::matcher::matches_ignored_anchored_file;
 use crate::spec::RuleKind;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -71,6 +73,21 @@ impl WalkOutput {
             self.unaccounted_files.push(pb);
         }
     }
+    pub fn mark_ignored_dir(&mut self, path: &Path) {
+        let pb = path.to_path_buf();
+        if !self.ignored_dirs.contains(&pb) {
+            self.ignored_dirs.push(pb.clone());
+        }
+        self.unaccounted_dirs.retain(|p| p != &pb);
+    }
+
+    pub fn mark_ignored_file(&mut self, path: &Path) {
+        let pb = path.to_path_buf();
+        if !self.ignored_files.contains(&pb) {
+            self.ignored_files.push(pb.clone());
+        }
+        self.unaccounted_files.retain(|p| p != &pb);
+    }
 }
 
 /// Per-directory traversal context.
@@ -105,8 +122,8 @@ pub struct WalkCtx {
 #[derive(Debug, Clone)]
 pub enum InheritedState {
     None,
-    // Later examples:
-    // SubtreeIgnored { rule_idx: usize },
+    // We're in an ignored subtree, ignored by rule at rule_index
+    SubtreeIgnored { rule_idx: usize },
     // etc.
 }
 
@@ -190,6 +207,14 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
             match classify_entry_last_wins(ctx, rules, &rel_path, EntryKind::Dir) {
                 Verdict::Allow { .. } => ctx.walk_output.allow_with_ancestors(&rel_path),
                 Verdict::Unaccounted => ctx.walk_output.mark_unaccounted_dir(&rel_path),
+                Verdict::Ignore { rule_idx } => {
+                    ctx.walk_output.mark_ignored_dir(&rel_path);
+                    // we just ignored a file. set the inherited context flag.
+                    ctx.inherited = InheritedState::SubtreeIgnored { rule_idx };
+                }
+                Verdict::IgnoredByInheritance { .. } => {
+                    ctx.walk_output.mark_ignored_dir(&rel_path);
+                }
             }
 
             // Debug: directory child
@@ -209,6 +234,12 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
             match classify_entry_last_wins(&ctx, rules, &rel_path, EntryKind::File) {
                 Verdict::Allow { .. } => ctx.walk_output.allow_with_ancestors(&rel_path),
                 Verdict::Unaccounted => ctx.walk_output.mark_unaccounted_file(&rel_path),
+                Verdict::Ignore { .. } => {
+                    ctx.walk_output.mark_ignored_file(&rel_path);
+                }
+                Verdict::IgnoredByInheritance { .. } => {
+                    ctx.walk_output.mark_ignored_file(&rel_path);
+                }
             }
 
             eprintln!(
@@ -240,8 +271,8 @@ enum EntryKind {
 #[derive(Debug, Clone, Copy)]
 enum Verdict {
     Allow { rule_idx: usize },
-    // Ignore { rule_idx: usize }, // later
-    // IgnoredByInheritance { rule_idx: usize }, // later
+    Ignore { rule_idx: usize },
+    IgnoredByInheritance { rule_idx: usize },
     Unaccounted,
 }
 
@@ -253,9 +284,10 @@ fn classify_entry_last_wins(
 ) -> Verdict {
     // 0) inheritance gate (stub for now)
     // Later this becomes:
-    // if ctx.inherited.is_ignored() { return Verdict::IgnoredByInheritance { rule_idx: ... } }
-    if false {
-        return Verdict::Unaccounted; // stub
+    if let InheritedState::SubtreeIgnored { rule_idx } = &ctx.inherited {
+        return Verdict::IgnoredByInheritance {
+            rule_idx: *rule_idx,
+        };
     }
 
     // 1) last rule wins: scan from bottom to top over live rules
@@ -284,9 +316,16 @@ fn classify_entry_last_wins(
                 // if matches_allowed_unanchored_file(r, rel_path) { ... }
             }
 
-            // later:
-            // (RuleKind::Ignore, EntryKind::Dir) => { ... }
-            // (RuleKind::Ignore, EntryKind::File) => { ... }
+            (RuleKind::Ignore, EntryKind::Dir) => {
+                if matches_ignored_anchored_dir(r, rel_path) {
+                    return Verdict::Ignore { rule_idx };
+                }
+            }
+            (RuleKind::Ignore, EntryKind::File) => {
+                if matches_ignored_anchored_file(r, rel_path) {
+                    return Verdict::Ignore { rule_idx };
+                }
+            }
             _ => {}
         }
     }

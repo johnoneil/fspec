@@ -10,7 +10,6 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-#[ignore]
 #[test]
 fn golden_basic_ignore_anchored_files() {
     let tmp = tempfile::tempdir().unwrap();
@@ -43,5 +42,5 @@ ignore /another/ignored/subdir/
 
     // ancestors of ignores are not ignored
     assert!(!report.is_ignored("ignored/subdir/"));
-    assert!(!report.is_unaccounted("another/ignored"));
+    assert!(!report.is_ignored("another/ignored"));
 }

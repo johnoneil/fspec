@@ -10,11 +10,6 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-fn create_dir(path: &Path) {
-    fs::create_dir_all(path).unwrap();
-    assert!(path.is_dir());
-}
-
 #[test]
 fn golden_basic_ignore_anchored_dirs() {
     let tmp = tempfile::tempdir().unwrap();
