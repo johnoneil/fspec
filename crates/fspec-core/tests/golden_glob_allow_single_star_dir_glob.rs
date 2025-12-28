@@ -10,27 +10,26 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-#[ignore = "enable when literal globbing (*.rs) is implemented"]
 #[test]
-fn golden_basic_allow_single_star_glob() {
+fn golden_basic_allow_single_star_dir_glob() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
 
     write_file(
         &root.join(".fspec"),
         r#"
-allow /src/*/*.rs
+allow /src/*/main.rs
 "#,
     );
 
     write_file(&root.join("src/main.rs"), "fn main() {}\n"); // should NOT match: no intermediate segment
-    write_file(&root.join("src/utils/helpers.rs"), "pub fn help() {}\n"); // should match: one intermediate segment
-    write_file(&root.join("src/utils/deeper/more.rs"), "pub fn more() {}\n"); // should NOT match: too deep
+    write_file(&root.join("src/utils/main.rs"), "pub fn help() {}\n"); // should match: one intermediate segment
+    write_file(&root.join("src/utils/deeper/main.rs"), "pub fn more() {}\n"); // should NOT match: too deep
 
     let report = check_tree(root, Severity::Error).unwrap();
 
-    assert!(report.is_allowed("src/utils/helpers.rs"));
+    assert!(report.is_allowed("src/utils/main.rs"));
 
     assert!(report.is_unaccounted("src/main.rs"));
-    assert!(report.is_unaccounted("src/utils/deeper/more.rs"));
+    assert!(report.is_unaccounted("src/utils/deeper/main.rs"));
 }

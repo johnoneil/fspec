@@ -10,7 +10,6 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-#[ignore]
 #[test]
 fn golden_trailing_slash_directory_only() {
     let tmp = tempfile::tempdir().unwrap();
