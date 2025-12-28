@@ -112,3 +112,9 @@ pub(crate) fn matches_allowed_unanchored_file(rule: &Rule, path: &Path) -> bool 
 pub(crate) fn matches_allowed_unanchored_dir(rule: &Rule, path: &Path) -> bool {
     matches_unanchored_literal(rule, path, RuleKind::Allow, Terminal::Dir)
 }
+pub(crate) fn matches_ignored_unanchored_file(rule: &Rule, path: &Path) -> bool {
+    matches_unanchored_literal(rule, path, RuleKind::Ignore, Terminal::File)
+}
+pub(crate) fn matches_ignored_unanchored_dir(rule: &Rule, path: &Path) -> bool {
+    matches_unanchored_literal(rule, path, RuleKind::Ignore, Terminal::Dir)
+}

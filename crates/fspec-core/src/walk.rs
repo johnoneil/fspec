@@ -4,6 +4,8 @@ use crate::matcher::matches_allowed_unanchored_dir;
 use crate::matcher::matches_allowed_unanchored_file;
 use crate::matcher::matches_ignored_anchored_dir;
 use crate::matcher::matches_ignored_anchored_file;
+use crate::matcher::matches_ignored_unanchored_dir;
+use crate::matcher::matches_ignored_unanchored_file;
 use crate::spec::RuleKind;
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -324,9 +326,15 @@ fn classify_entry_last_wins(
                 if matches_ignored_anchored_dir(r, rel_path) {
                     return Verdict::Ignore { rule_idx };
                 }
+                if matches_ignored_unanchored_dir(r, rel_path) {
+                    return Verdict::Ignore { rule_idx };
+                }
             }
             (RuleKind::Ignore, EntryKind::File) => {
                 if matches_ignored_anchored_file(r, rel_path) {
+                    return Verdict::Ignore { rule_idx };
+                }
+                if matches_ignored_unanchored_file(r, rel_path) {
                     return Verdict::Ignore { rule_idx };
                 }
             }
