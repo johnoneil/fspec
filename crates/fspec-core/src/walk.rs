@@ -1,5 +1,7 @@
 use crate::matcher::matches_allowed_anchored_dir;
 use crate::matcher::matches_allowed_anchored_file;
+use crate::matcher::matches_allowed_unanchored_dir;
+use crate::matcher::matches_allowed_unanchored_file;
 use crate::matcher::matches_ignored_anchored_dir;
 use crate::matcher::matches_ignored_anchored_file;
 use crate::spec::RuleKind;
@@ -304,16 +306,18 @@ fn classify_entry_last_wins(
                 if matches_allowed_anchored_dir(r, rel_path) {
                     return Verdict::Allow { rule_idx };
                 }
-                // later:
-                // if matches_allowed_unanchored_dir(r, rel_path) { ... }
+                if matches_allowed_unanchored_dir(r, rel_path) {
+                    return Verdict::Allow { rule_idx };
+                }
             }
 
             (RuleKind::Allow, EntryKind::File) => {
                 if matches_allowed_anchored_file(r, rel_path) {
                     return Verdict::Allow { rule_idx };
                 }
-                // later:
-                // if matches_allowed_unanchored_file(r, rel_path) { ... }
+                if matches_allowed_unanchored_file(r, rel_path) {
+                    return Verdict::Allow { rule_idx };
+                }
             }
 
             (RuleKind::Ignore, EntryKind::Dir) => {

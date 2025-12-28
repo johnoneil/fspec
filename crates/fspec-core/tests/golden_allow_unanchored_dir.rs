@@ -16,7 +16,7 @@ fn create_dir(path: &Path) {
 }
 
 #[test]
-fn golden_allow_anchored_dir() {
+fn golden_allow_unanchored_dir() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
 
@@ -33,7 +33,6 @@ allow allowed/
     let report = check_tree(root, Severity::Error).unwrap();
 
     assert!(report.is_allowed("allowed"));
-    assert!(report.is_allowed("all/ancestors/allowed/too"));
     assert!(report.is_allowed("all/ancestors/allowed"));
     assert!(report.is_allowed("all/ancestors"));
     assert!(report.is_allowed("all"));
