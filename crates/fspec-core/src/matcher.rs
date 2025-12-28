@@ -30,12 +30,16 @@ fn matches_anchored_literal(rule: &Rule, path: &Path, kind: RuleKind, terminal: 
         if !is_last {
             match pat {
                 FSEntry::Dir(DirType::Lit(lit)) if lit == &actual => {}
+                FSEntry::Dir(DirType::Star) => {} // matches any single directory component
                 _ => return false,
             }
         } else {
             match (terminal, pat) {
                 (Terminal::File, FSEntry::File(FileType::Lit(lit))) if lit == &actual => {}
+                (Terminal::File, FSEntry::File(FileType::Star)) => {} // matches any single file name
+
                 (Terminal::Dir, FSEntry::Dir(DirType::Lit(lit))) if lit == &actual => {}
+                (Terminal::Dir, FSEntry::Dir(DirType::Star)) => {} // matches any single dir name
                 _ => return false,
             }
         }
@@ -80,12 +84,16 @@ fn matches_unanchored_literal(
         if !is_last {
             match pat {
                 FSEntry::Dir(DirType::Lit(lit)) if lit == actual => {}
+                FSEntry::Dir(DirType::Star) => {} // matches any single directory component
                 _ => return false,
             }
         } else {
             match (terminal, pat) {
                 (Terminal::File, FSEntry::File(FileType::Lit(lit))) if lit == actual => {}
+                (Terminal::File, FSEntry::File(FileType::Star)) => {} // matches any single file name
+
                 (Terminal::Dir, FSEntry::Dir(DirType::Lit(lit))) if lit == actual => {}
+                (Terminal::Dir, FSEntry::Dir(DirType::Star)) => {} // matches any single dir name
                 _ => return false,
             }
         }

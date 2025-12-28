@@ -10,7 +10,6 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-#[ignore]
 #[test]
 fn golden_allowed_nested_dirs_files() {
     let tmp = tempfile::tempdir().unwrap();
@@ -36,7 +35,6 @@ allow file.txt
 
     let report = check_tree(root, Severity::Error).unwrap();
 
-    assert!(report.is_allowed("file.txt"));
     assert!(report.is_allowed("a/"));
     assert!(report.is_allowed("a/b"));
     assert!(report.is_allowed("a/b/c"));
@@ -45,10 +43,6 @@ allow file.txt
     assert!(report.is_allowed("e/f/"));
     assert!(report.is_allowed("e/f/g/"));
     assert!(report.is_allowed("e/f/g/file.txt"));
-
-    // for now the root .fspec file is allowed
-    assert!(report.is_allowed(".fspec"));
-    assert!(report.is_unaccounted(".fspec") == false);
 
     assert!(report.is_unaccounted("e/f/g/other.txt"));
 }

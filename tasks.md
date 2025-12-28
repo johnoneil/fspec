@@ -11,10 +11,10 @@
 - [x] Anchored ignore file rule
 - [x] Anchored ignore dir rule
 - [x] Trailing `/` directory-only allow
-- [ ] Unanchored allow file rule
-- [ ] Unanchored allow dir rule
-- [ ] Unanchored ignore file rule
-- [ ] Unanchored ignore dir rule
+- [x] Unanchored allow file rule
+- [x] Unanchored allow dir rule
+- [x] Unanchored ignore file rule
+- [x] Unanchored ignore dir rule
 - [ ] `*` single-segment glob
 - [ ] `**` recursive glob
 - [ ] `**` matches zero segments
