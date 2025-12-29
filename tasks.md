@@ -15,11 +15,11 @@
 - [x] Unanchored allow dir rule
 - [x] Unanchored ignore file rule
 - [x] Unanchored ignore dir rule
-- [ ] `*` single-segment glob
-- [ ] `**` recursive glob
-- [ ] `**` matches zero segments
+- [x] `*` single-segment glob
+- [x] `**` recursive glob
+- [x] `**` matches zero segments
 - [ ] Ignored-subtree barrier (unanchored allow doesn’t pierce)
-- [ ] Rooted re-allow inside ignored subtree (plus warning)
+- [ ] anchored re-allow inside ignored subtree (plus warning)
 - [ ] Last match wins
 - [ ] optionally omit `allow` command.
 - [ ] also support use of `./` to mean anchored allow/ignore.

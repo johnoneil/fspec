@@ -93,7 +93,7 @@ Each non-comment line is a rule:
 
 | Prefix   | Meaning  |
 | -------- | -------- |
-| `allow`  | Allows a given directory file and its ancestors to exist without error.  |
+| `allow`  | Allows a given directory or file and its ancestors to exist without error.  |
 | `ignore` | Ignores a file or directory, removing it and all its possible descendants from checks.  |
 
 Examples:
@@ -120,25 +120,29 @@ These rules are fundamental and should be considered *part of the spec*:
 
 Anything not ignored or matched by an `allow` rule is reported (warning or error).
 
-### 2. Order matters
+### 2. Anchored vs unanchored patterns
 
-Rules are evaluated **top to bottom**.
-If multiple rules match a path, **the last matching rule wins**.
-
-### 3. Anchored vs unanchored patterns
-
-* FSPatterns starting with `/` are **anchored** at the directory containing the `.fspec`.
-* FSPatterns without `/` are **unanchored** and may match anywhere.
+* FSPatterns starting with `./` or `/` (equivalent) are **anchored** at the directory containing the `.fspec`.
 
 ```fspec
-/bin        # only matches ./bin
-bin         # matches bin at any depth
+# these are equivalent patterns, anchored at directory containing the .fspec
+allow ./src/main.rs
+allow /src/main.rs
 ```
 
-### 4. Ignore rules
+* FSPatterns without a leading `./` or `/` are **unanchored** and may match anywhere.
 
-* `ignore` prevents fspec applying rules to ignored file or directory, *and all its descendants*.
+```fspec
+/bin  # only matches ./bin
+./bin # only matches ./bin
+bin # matches bin at any depth
+```
+
+### 3. Ignore rules
+
+* ignore suppresses reporting of violations for a file or directory and its descendants unless later rules re-include them.
 * A trailing `/` means *directory-only*
+* Because unanchored rules may re-include paths under previously ignored directories, fspec may still traverse ignored directories when unanchored rules are present.
 
 ```fspec
 ignore /bin/    # ignore a *directory* named "bin" at fspec root (anchored).
@@ -146,28 +150,20 @@ ignore /bin     # ignore a file named "bin" at fspec root (anchored)
 ignore bin/     # ignore a directory named "bin" anywhere.
 ignore bin      # ignore a *file* named "bin" anywhere.
 ```
+### 4. Order matters
 
-### 5. Ignored-subtree barrier
+Rules are evaluated **top to bottom**.
 
-Ignored directories form a barrier:
+If multiple rules match a path, **the last matching rule wins**. As a consequence, later allow rules may re-include files or directories that were previously matched by ignore rules, including via anchored or unanchored patterns.
 
-* **Unanchored `allow` rules do NOT apply inside ignored directories**
-* **Anchored `allow` rules MAY re-allow specific paths inside ignored directories**
+Such re-inclusions are permitted by default, and may optionally emit warnings or be disallowed under stricter user settings.
 
-```fspec
-ignore /bin/
-allow {snake_case}.rs   # does NOT re-allow /bin/foo.rs
-allow /bin/tool.rs      # DOES re-allow this file (with a warning)
-```
-
-Re-allowing files inside ignored directories is permitted but should emit a warning.
-
-### 6. Directories implied by allowed files
+### 5. Directories implied by allowed files
 
 If a file or directory is allowed, the directories required to reach it are considered **structurally allowed**.
 You do not need to separately allow every directory component.
 
-### 7. Directory/file name collisions
+### 6. Directory/file name collisions
 
 Files which pass directory naming specs are emitted as warnings by default.
 
