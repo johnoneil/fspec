@@ -23,8 +23,8 @@ pub struct WalkOutput {
 }
 
 impl WalkOutput {
-    pub fn allow_with_ancestors(&mut self, path: &Path) {
-        // 1) allow the path itself
+    fn allow_with_ancestors(&mut self, path: &Path) {
+        // 1) allow the path itself (unchanged)
         if path.extension().is_some() {
             if !self.allowed_files.contains(&path.to_path_buf()) {
                 self.allowed_files.push(path.to_path_buf());
@@ -41,6 +41,11 @@ impl WalkOutput {
         let mut cur = path.parent();
 
         while let Some(dir) = cur {
+            // 🔧 Stop before the empty relative root ("")
+            if dir.as_os_str().is_empty() {
+                break;
+            }
+
             let pb = dir.to_path_buf();
 
             if !self.allowed_dirs.contains(&pb) {
