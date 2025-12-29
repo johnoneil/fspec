@@ -16,15 +16,15 @@ fn golden_ambiguous_last_wins_and_warn() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
 
-    // Both allows match src/main.rs:
+    // Both allows match src/file.txt
     //  - first: any snake_case rs anywhere
     //  - second: specifically under /src/**
     // Last match should be the winner (useful if you record "winning rule line").
     write_file(
         &root.join(".fspec"),
         r#"
-allow {tag:snake_case}.rs
-allow /src/**/{tag:snake_case}.rs
+allow file.txt
+allow /src/**/file.txt
 "#,
     );
 

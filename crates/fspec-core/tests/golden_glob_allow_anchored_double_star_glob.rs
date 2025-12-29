@@ -11,7 +11,7 @@ fn write_file(path: &Path, contents: &str) {
 }
 
 #[test]
-fn golden_glob_doublestar_zero_segments() {
+fn golden_basic_allow_anchored_double_star_glob() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
 
@@ -22,12 +22,16 @@ allow /src/**/file.txt
 "#,
     );
 
-    // ** should match zero segments -> allows src/main.rs
+    write_file(&root.join("file.txt"), "dummy_file");
     write_file(&root.join("src/file.txt"), "dummy_file");
-    // ...and deeper nesting too
+    write_file(&root.join("src/utils/file.txt"), "dummy_file");
     write_file(&root.join("src/a/b/c/file.txt"), "dummy_file");
 
     let report = check_tree(root, Severity::Error).unwrap();
+
     assert!(report.is_allowed("src/file.txt"));
+    assert!(report.is_allowed("src/utils/file.txt"));
     assert!(report.is_allowed("src/a/b/c/file.txt"));
+
+    assert!(report.is_unaccounted("file.txt"));
 }
