@@ -30,11 +30,13 @@ impl WalkOutput {
                 self.allowed_files.push(path.to_path_buf());
             }
             self.unaccounted_files.retain(|p| p != path);
+            self.ignored_files.retain(|p| p != path);
         } else {
             if !self.allowed_dirs.contains(&path.to_path_buf()) {
                 self.allowed_dirs.push(path.to_path_buf());
             }
             self.unaccounted_dirs.retain(|p| p != path);
+            self.ignored_dirs.retain(|p| p != path);
         }
 
         // 2) walk ancestors (dirs only)
@@ -53,6 +55,7 @@ impl WalkOutput {
             }
 
             self.unaccounted_dirs.retain(|p| p != &pb);
+            self.ignored_dirs.retain(|p| p != &pb);
 
             cur = dir.parent();
         }
@@ -291,15 +294,9 @@ fn classify_entry_last_wins(
     rel_path: &Path,
     kind: EntryKind,
 ) -> Verdict {
-    // 0) inheritance gate (stub for now)
-    // Later this becomes:
-    if let InheritedState::SubtreeIgnored { rule_idx } = &ctx.inherited {
-        return Verdict::IgnoredByInheritance {
-            rule_idx: *rule_idx,
-        };
-    }
-
     // 1) last rule wins: scan from bottom to top over live rules
+    // This must happen BEFORE checking inheritance, so that later rules can
+    // override inherited ignore state (e.g., "ignore /bin/" then "allow /bin/allowed.txt")
     for &rule_idx in ctx.live_rule_idxs.iter().rev() {
         let r = &rules[rule_idx];
 
@@ -345,6 +342,14 @@ fn classify_entry_last_wins(
             }
             _ => {}
         }
+    }
+
+    // 0) inheritance gate: only apply if no explicit rule matched
+    // This allows later rules to override inherited ignore state
+    if let InheritedState::SubtreeIgnored { rule_idx } = &ctx.inherited {
+        return Verdict::IgnoredByInheritance {
+            rule_idx: *rule_idx,
+        };
     }
 
     Verdict::Unaccounted
