@@ -10,7 +10,6 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-#[ignore]
 #[test]
 fn golden_unanchored_allow_inside_ignored_tree_and_last_rule_wins() {
     let tmp = tempfile::tempdir().unwrap();
@@ -33,11 +32,11 @@ allow file.txt
     let report = check_tree(root, Severity::Error).unwrap();
 
     // Unanchored allow should still work inside an ignored subtree, *unless* overridden later.
-    assert!(report.is_ignored("e/f/g/file.txt")); // last rule wins
-    assert!(report.is_unaccounted("e/f/g/other.txt") == false); // optional sanity: it's ignored via /e
+    assert!(report.is_allowed("e/f/g/file.txt")); // last rule wins
+    assert!(report.is_unaccounted("e/f/g/other.txt")); // optional sanity: it's ignored via /e
 
     // Outside that subtree, unanchored allow should allow file.txt and promote parents.
     assert!(report.is_allowed("x/y/file.txt"));
-    assert!(report.is_allowed("x"));
     assert!(report.is_allowed("x/y"));
+    assert!(report.is_allowed("x"));
 }

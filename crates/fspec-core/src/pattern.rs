@@ -8,7 +8,10 @@ pub(crate) fn parse_pattern_str(raw: &str, line: usize) -> Result<FSPattern, Err
     }
 
     // Anchored vs unanchored.
-    let (anchored, mut s, base_col) = if let Some(rest) = s0.strip_prefix('/') {
+    // Support both '/' and './' as anchored prefixes
+    let (anchored, mut s, base_col) = if let Some(rest) = s0.strip_prefix("./") {
+        (true, rest, 3) // we consumed './'
+    } else if let Some(rest) = s0.strip_prefix('/') {
         (true, rest, 2) // we consumed '/'
     } else {
         (false, s0, 1)
@@ -127,6 +130,25 @@ mod tests {
                 File(FileType::Lit("x".into()))
             ])
         );
+    }
+
+    #[test]
+    fn anchored_pattern_with_dot_slash() {
+        let p = parse_pattern_str("./assets/**/x", 1).unwrap();
+        assert_eq!(
+            p,
+            Anchored(vec![
+                Dir(DirType::Lit("assets".into())),
+                Dir(DirType::DoubleStar),
+                File(FileType::Lit("x".into()))
+            ])
+        );
+    }
+
+    #[test]
+    fn anchored_dir_with_dot_slash() {
+        let p = parse_pattern_str("./bin/", 1).unwrap();
+        assert_eq!(p, Anchored(vec![Dir(DirType::Lit("bin".into()))]));
     }
 
     #[test]
