@@ -251,10 +251,10 @@ fspec is intentionally staged. Not all features need to exist at once.
 - [x] `*` single-segment glob
 - [x] `**` recursive glob
 - [x] `**` matches zero segments
-- [ ] anchored re-allow inside ignored subtree (plus warning)
-- [ ] Last match wins
-- [ ] optionally omit `allow` command.
-- [ ] also support use of `./` to mean anchored allow/ignore.
+- [x] anchored re-allow inside ignored subtree (plus warning)
+- [x] Last match wins
+- [x] optionally omit `allow` command.
+- [x] also support use of `./` to mean anchored allow/ignore.
 
 
 ## Level 1 — Extraction

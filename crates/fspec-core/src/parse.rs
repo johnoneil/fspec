@@ -21,24 +21,23 @@ pub(crate) fn parse_fspec(src: &str) -> Result<Vec<Rule>, Error> {
         }
 
         // Parse keyword and the rest of the line.
-        let (kind, rest_owned) = split_kw_owned(trimmed).ok_or_else(|| Error::Parse {
-            line: line_no,
-            col: 1,
-            msg: "expected 'allow' or 'ignore'".into(),
-        })?;
-
-        // Everything after the keyword is the pattern (spaces allowed).
-        let rest = rest_owned.trim_start();
-        if rest.is_empty() {
-            return Err(Error::Parse {
-                line: line_no,
-                col: 1,
-                msg: "expected a pattern after keyword".into(),
-            });
-        }
-
-        let raw_pattern = rest.trim_end();
-        let pattern = parse_pattern_str(raw_pattern, line_no)?;
+        // If no keyword is found, default to 'allow' (for find output compatibility).
+        let (kind, raw_pattern) = if let Some((k, rest_owned)) = split_kw_owned(trimmed) {
+            // Found a keyword (allow or ignore)
+            let rest = rest_owned.trim_start();
+            if rest.is_empty() {
+                return Err(Error::Parse {
+                    line: line_no,
+                    col: 1,
+                    msg: "expected a pattern after keyword".into(),
+                });
+            }
+            (k, rest.trim_end().to_string())
+        } else {
+            // No keyword found - treat entire line as pattern, default to 'allow'
+            (RuleKind::Allow, trimmed.trim_end().to_string())
+        };
+        let pattern = parse_pattern_str(&raw_pattern, line_no)?;
 
         rules.push(Rule {
             line: line_no,
@@ -83,6 +82,47 @@ mod tests {
         assert_eq!(rules[0].line, 3);
         assert_eq!(rules[0].kind, RuleKind::Allow);
         assert_eq!(rules[1].kind, RuleKind::Ignore);
+    }
+
+    #[test]
+    fn allow_keyword_is_optional() {
+        let src = r#"
+            # comment
+            /src/main.rs
+            allow /src/lib.rs
+            ignore /target/
+            /src/utils.rs
+        "#;
+
+        let rules = parse_fspec(src).unwrap();
+        assert_eq!(rules.len(), 4);
+        // Line without keyword defaults to Allow
+        assert_eq!(rules[0].kind, RuleKind::Allow);
+        assert_eq!(rules[0].line, 3);
+        // Explicit allow
+        assert_eq!(rules[1].kind, RuleKind::Allow);
+        assert_eq!(rules[1].line, 4);
+        // Explicit ignore (required)
+        assert_eq!(rules[2].kind, RuleKind::Ignore);
+        assert_eq!(rules[2].line, 5);
+        // Another line without keyword defaults to Allow
+        assert_eq!(rules[3].kind, RuleKind::Allow);
+        assert_eq!(rules[3].line, 6);
+    }
+
+    #[test]
+    fn find_output_compatibility() {
+        // Simulating find output - just paths, no keywords
+        let src = r#"
+            ./src/main.rs
+            ./src/lib.rs
+            ./target/
+        "#;
+
+        let rules = parse_fspec(src).unwrap();
+        assert_eq!(rules.len(), 3);
+        // All should default to Allow
+        assert!(rules.iter().all(|r| r.kind == RuleKind::Allow));
     }
 
     // #[test]
