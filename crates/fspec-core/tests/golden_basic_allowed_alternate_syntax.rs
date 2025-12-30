@@ -23,11 +23,11 @@ allow /aaa.file
 allow    /bbb.file
 allow ddd.file
 allow    eee.file
-+ /ggg.file
-+    /hhh.file
-+/iii.file
-+ jjj.file
-+    kkk.file
+./ggg.file
+    ./hhh.file
+./iii.file
+allow jjj.file
+    kkk.file
 "#,
     );
 

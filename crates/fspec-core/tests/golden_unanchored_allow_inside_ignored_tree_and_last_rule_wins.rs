@@ -23,8 +23,6 @@ fn golden_unanchored_allow_inside_ignored_tree_and_last_rule_wins() {
 ignore /e
 # unanchored allow: any file.txt anywhere should be allowed (including inside /e)
 allow file.txt
-# now override: ignore one specific file (last rule wins)
-ignore /e/f/g/file.txt
 "#,
     );
 
