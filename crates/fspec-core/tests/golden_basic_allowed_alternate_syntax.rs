@@ -10,7 +10,6 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-#[ignore = "enable when alternate syntaxes are enabled."]
 #[test]
 fn golden_basic_all_allowed() {
     let tmp = tempfile::tempdir().unwrap();
