@@ -1,15 +1,21 @@
+
 ## Placeholder / Component Mini-Grammar
 
-This grammar applies to a **single path component** (between `/` separators). A component is parsed into a sequence of **parts**.
+### 0. Scope
+
+* This grammar parses **one path component** (text between `/` separators).
+* `/` is *not matchable* by `*` or placeholders.
+* (Practical note: allowing a literal `/` inside a “component” doesn’t make sense without a separate escaping story for separators — so the old `{".../..."} ` idea was a dead-end anyway.)
 
 ---
 
-### 1. Component structure
+## 1. Component structure
 
-```
+```ebnf
 component        := part*
 
 part             := literal_run
+                  | quoted_literal
                   | star
                   | placeholder
 
@@ -18,176 +24,117 @@ star             := "*"
 
 ---
 
-### 2. Literal text (outside placeholders)
+## 2. Literals
 
-Outside placeholders, `{`, `}`, and `*` are special.
+### 2.1 Unquoted literal runs
 
-To write literal braces, use doubling.
-
-```
+```ebnf
 literal_run      := literal_char+
 
-literal_char     := any character except '{' '}' '*' '/'
-                  | "{{"          // literal '{'
-                  | "}}"          // literal '}'
+literal_char     := any char except: '*', '{', '}', '"'
 ```
 
-*(A literal `*` outside placeholders must be written using a string literal placeholder — see section 4.)*
+* Unquoted `*` is always a glob star.
+* `{` starts a placeholder.
+* `"` starts a quoted literal.
 
----
+(Everything else — including spaces — is literal outside `{}`.)
 
-### 3. Placeholder syntax
+### 2.2 Quoted literals (new primary escape mechanism)
 
-```
-placeholder      := "{" placeholder_body "}"
-```
+```ebnf
+quoted_literal   := DQUOTE qchar* DQUOTE
 
----
-
-### 4. Placeholder body forms
-
-```
-placeholder_body :=
-      named_capture
-    | limiter_only
-    | oneof_shorthand
-    | string_literal
-```
-
-#### 4.1 Named capture
-
-```
-named_capture    := IDENT [ ":" limiter_expr ]
-```
-
-Examples:
-
-* `{year}`
-* `{year:int(4)}`
-* `{show_name}`
-
-Interpretation:
-
-* If IDENT is *not* a reserved limiter name → named placeholder
-* Default limiter is `Any`
-
----
-
-#### 4.2 Limiter-only (anonymous)
-
-```
-limiter_only     := ":" limiter_expr
-                  | limiter_expr
-```
-
-Examples:
-
-* `{int(4)}`
-* `{PascalCase}`
-* `{:snake_case}`
-
-Only valid if `limiter_expr` uses a **reserved limiter identifier**.
-
----
-
-#### 4.3 One-of shorthand (restricted)
-
-```
-oneof_shorthand  := oneof_token ( "|" oneof_token )+
-
-oneof_token      := [A-Za-z0-9_.-]+
-```
-
-Example:
-
-* `{mp4|mkv|avi}`
-
-For complex strings (spaces, pipes, braces), use `oneof("...")` instead.
-
----
-
-#### 4.4 Literal string placeholder (escape hatch)
-
-```
-string_literal   := STRING
-
-STRING           := '"' STRING_CHAR* '"'
-STRING_CHAR      := '""'              // doubled quote → literal "
+qchar            := '""'               // doubled quote → literal "
                   | any char except '"'
 ```
 
+* Inside quotes, **everything is literal** (including `*`, `{`, `}`, `|`, and spaces).
+* To include a literal `"` inside a quoted literal, write `""`.
+
 Example:
 
-* `{"***this_is_a_file***"}`
-* `{"*.rs"}`
-* `{"{weird|name}*"}`
+```fspec
+ignore "***filename_literal***".o
+```
 
-Interpretation:
-
-* Produces a **literal component part**
-* No placeholders, globs, or limiters are processed inside
-* No capture occurs
+This component is: quoted literal `***filename_literal***` + literal run `.o`.
 
 ---
 
-### 5. Limiter expressions
+## 3. Placeholders
 
+```ebnf
+placeholder      := "{" WS* placeholder_body WS* "}"
+
+placeholder_body := oneof
+                  | capture_or_ref
+
+capture_or_ref   := IDENT (WS* ":" WS* limiter_spec)?
+                 // (if you already had `{year}` meaning “reference year” vs capture,
+                 // keep that semantic rule at a higher layer; grammar-wise it’s IDENT.)
 ```
-limiter_expr     := limiter_ident [ "(" limiter_args? ")" ]
 
-limiter_ident    := IDENT           // must be reserved
+### 3.1 One-of placeholder
 
-limiter_args     := limiter_arg ( "," limiter_arg )*
+```ebnf
+oneof            := choice (WS* "|" WS* choice)+
 
-limiter_arg      := INT
-                  | range
-                  | plus_int
+choice           := IDENT
+                  | quoted_string
+
+quoted_string    := DQUOTE qchar* DQUOTE    // same rules as quoted_literal
+```
+
+Examples:
+
+```fspec
+allow file.{mp4|mkv}
+allow file.{"mp*4"|"m/v"|"""in quotes"""}
+```
+
+* `IDENT` choices are “simple tokens”
+* quoted choices allow any weirdness, with `""` as the quote escape.
+
+---
+
+## 4. Limiters (with whitespace tolerance)
+
+```ebnf
+limiter_spec     := IDENT (WS* "(" WS* limiter_args? WS* ")" )?
+
+limiter_args     := limiter_arg (WS* "," WS* limiter_arg)*
+
+limiter_arg      := NUMBER
                   | IDENT
-                  | STRING
+                  | quoted_string
+```
 
-range            := INT ".." INT     // e.g. 1..4
-plus_int         := INT "+"          // e.g. 3+
+Whitespace rule inside `{ ... }`:
+
+* `WS*` is allowed:
+
+  * before/after the placeholder body
+  * around `:`
+  * around `|`
+  * around `(` `)` and `,`
+* **Whitespace inside quoted strings is literal.**
+* **Whitespace outside `{}` remains exact** (because it’s just part of the path component).
+
+So these are equivalent:
+
+```fspec
+{year:int(4)}
+{ year : int( 4 ) }
+{year :int(4)}
 ```
 
 ---
 
-### 6. Identifiers and tokens
+## 5. Matching constraints (unchanged)
 
-```
-IDENT            := [A-Za-z_][A-Za-z0-9_]*
-INT              := [0-9]+
-```
-
----
-
-### 7. Interpretation rules (normative)
-
-1. `{IDENT}`:
-
-   * If IDENT is a reserved limiter → anonymous limiter-only placeholder
-   * Otherwise → named capture with limiter `Any`
-
-2. `{IDENT:lim(...)}` → named capture with explicit limiter
-
-3. `{lim(...)}` or `{:lim(...)}` → anonymous limiter-only placeholder
-
-4. `{a|b|c}` → anonymous `OneOf` limiter (restricted tokens only)
-
-5. `{"..."}` → literal text (escape hatch), no glob or placeholder semantics
-
-6. `*` always matches any string **within a single component**
-
-7. Placeholders and `*` never match `/`
+* `*` matches any sequence of chars **except** `/`.
+* Placeholders never match `/`.
+* Quoted literals match exactly their literal content.
 
 ---
-
-### 8. Design intent (why this works)
-
-* Most common cases (`*.rs`, `{year:int(4)}`, `{mp4|mkv}`) stay concise
-* Escaping is rare and localized
-* Complex or “ugly” literals have a single, obvious escape hatch
-* Grammar stays deterministic and easy to hand-parse
-* Future features (references, regex limiters, raw strings) can be added without breaking syntax
-
----
-
