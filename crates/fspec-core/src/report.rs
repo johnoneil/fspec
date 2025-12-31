@@ -10,21 +10,14 @@ pub enum Status {
     Unaccounted,
 }
 
-// TODO: move string operations to form:
-// while let Some(rest) = t.strip_prefix("./") {
-// t = rest;
 fn canon_key(s: &str) -> String {
     let mut t = s.trim().replace('\\', "/");
 
-    // strip leading "./"
-    while t.starts_with("./") {
-        t = t[2..].to_string();
-    }
-
-    // strip leading "/"
-    while t.starts_with('/') {
-        t = t[1..].to_string();
-    }
+    // strip leading "./" and "/"
+    t = t
+        .trim_start_matches("./")
+        .trim_start_matches('/')
+        .to_string();
 
     // strip trailing slashes
     while t.ends_with('/') && t.len() > 1 {

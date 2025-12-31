@@ -7,41 +7,33 @@ use crate::matcher::matches_ignored_anchored_file;
 use crate::matcher::matches_ignored_unanchored_dir;
 use crate::matcher::matches_ignored_unanchored_file;
 use crate::spec::RuleKind;
+use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::{Error, Rule};
 
-// TODO: to facilitate lookups, move Vec to HashSet<PathBuf> or BTreeSet<PathBuf>
 #[derive(Debug, Clone, Default)]
 pub struct WalkOutput {
-    pub allowed_files: Vec<PathBuf>,
-    pub allowed_dirs: Vec<PathBuf>,
-    pub ignored_files: Vec<PathBuf>,
-    pub ignored_dirs: Vec<PathBuf>,
-    pub unaccounted_files: Vec<PathBuf>,
-    pub unaccounted_dirs: Vec<PathBuf>,
+    pub allowed_files: HashSet<PathBuf>,
+    pub allowed_dirs: HashSet<PathBuf>,
+    pub ignored_files: HashSet<PathBuf>,
+    pub ignored_dirs: HashSet<PathBuf>,
+    pub unaccounted_files: HashSet<PathBuf>,
+    pub unaccounted_dirs: HashSet<PathBuf>,
 }
 
 impl WalkOutput {
-    fn allow_with_ancestors(&mut self, path: &Path) {
-        // 1) allow the path itself (unchanged)
-        // TODO: This is weak as files might not have an extension.
-        // We should use a more robust extension detection mechanism.
-        if path.extension().is_some() {
-            if !self.allowed_files.contains(&path.to_path_buf()) {
-                self.allowed_files.push(path.to_path_buf());
-            }
-            // TODO: this could be made more efficient by using PathBuf throughout
-            // not comparing Path and Pathbuf which requires conversion.
-            self.unaccounted_files.retain(|p| p != path);
-            self.ignored_files.retain(|p| p != path);
+    fn allow_with_ancestors(&mut self, path: PathBuf, is_file: bool) {
+        // 1) allow the path itself
+        if is_file {
+            self.allowed_files.insert(path.clone());
+            self.unaccounted_files.remove(&path);
+            self.ignored_files.remove(&path);
         } else {
-            if !self.allowed_dirs.contains(&path.to_path_buf()) {
-                self.allowed_dirs.push(path.to_path_buf());
-            }
-            self.unaccounted_dirs.retain(|p| p != path);
-            self.ignored_dirs.retain(|p| p != path);
+            self.allowed_dirs.insert(path.clone());
+            self.unaccounted_dirs.remove(&path);
+            self.ignored_dirs.remove(&path);
         }
 
         // 2) walk ancestors (dirs only)
@@ -55,55 +47,39 @@ impl WalkOutput {
 
             let pb = dir.to_path_buf();
 
-            if !self.allowed_dirs.contains(&pb) {
-                self.allowed_dirs.push(pb.clone());
-            }
-
-            self.unaccounted_dirs.retain(|p| p != &pb);
-            self.ignored_dirs.retain(|p| p != &pb);
+            self.allowed_dirs.insert(pb.clone());
+            self.unaccounted_dirs.remove(&pb);
+            self.ignored_dirs.remove(&pb);
 
             cur = dir.parent();
         }
     }
 
-    pub fn mark_unaccounted_dir(&mut self, path: &Path) {
-        let pb = path.to_path_buf();
-
+    pub fn mark_unaccounted_dir(&mut self, path: PathBuf) {
         // Don't mark if already justified
-        if self.allowed_dirs.contains(&pb) || self.ignored_dirs.contains(&pb) {
+        if self.allowed_dirs.contains(&path) || self.ignored_dirs.contains(&path) {
             return;
         }
 
-        if !self.unaccounted_dirs.contains(&pb) {
-            self.unaccounted_dirs.push(pb);
-        }
+        self.unaccounted_dirs.insert(path);
     }
 
-    pub fn mark_unaccounted_file(&mut self, path: &Path) {
-        let pb = path.to_path_buf();
-
-        if self.allowed_files.contains(&pb) || self.ignored_files.contains(&pb) {
+    pub fn mark_unaccounted_file(&mut self, path: PathBuf) {
+        if self.allowed_files.contains(&path) || self.ignored_files.contains(&path) {
             return;
         }
 
-        if !self.unaccounted_files.contains(&pb) {
-            self.unaccounted_files.push(pb);
-        }
-    }
-    pub fn mark_ignored_dir(&mut self, path: &Path) {
-        let pb = path.to_path_buf();
-        if !self.ignored_dirs.contains(&pb) {
-            self.ignored_dirs.push(pb.clone());
-        }
-        self.unaccounted_dirs.retain(|p| p != &pb);
+        self.unaccounted_files.insert(path);
     }
 
-    pub fn mark_ignored_file(&mut self, path: &Path) {
-        let pb = path.to_path_buf();
-        if !self.ignored_files.contains(&pb) {
-            self.ignored_files.push(pb.clone());
-        }
-        self.unaccounted_files.retain(|p| p != &pb);
+    pub fn mark_ignored_dir(&mut self, path: PathBuf) {
+        self.ignored_dirs.insert(path.clone());
+        self.unaccounted_dirs.remove(&path);
+    }
+
+    pub fn mark_ignored_file(&mut self, path: PathBuf) {
+        self.ignored_files.insert(path.clone());
+        self.unaccounted_files.remove(&path);
     }
 }
 
@@ -221,15 +197,17 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
             let rel_path = ctx.rel.clone();
 
             match classify_entry_last_wins(ctx, rules, &rel_path, EntryKind::Dir) {
-                Verdict::Allow { .. } => ctx.walk_output.allow_with_ancestors(&rel_path),
-                Verdict::Unaccounted => ctx.walk_output.mark_unaccounted_dir(&rel_path),
+                Verdict::Allow { .. } => ctx
+                    .walk_output
+                    .allow_with_ancestors(rel_path.clone(), false),
+                Verdict::Unaccounted => ctx.walk_output.mark_unaccounted_dir(rel_path),
                 Verdict::Ignore { rule_idx } => {
-                    ctx.walk_output.mark_ignored_dir(&rel_path);
-                    // we just ignored a file. set the inherited context flag.
+                    ctx.walk_output.mark_ignored_dir(rel_path.clone());
+                    // we just ignored a directory. set the inherited context flag.
                     ctx.inherited = InheritedState::SubtreeIgnored { rule_idx };
                 }
                 Verdict::IgnoredByInheritance { .. } => {
-                    ctx.walk_output.mark_ignored_dir(&rel_path);
+                    ctx.walk_output.mark_ignored_dir(rel_path);
                 }
             }
 
@@ -245,13 +223,15 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
             let rel_path = ctx.rel.join(name.as_ref());
 
             match classify_entry_last_wins(&ctx, rules, &rel_path, EntryKind::File) {
-                Verdict::Allow { .. } => ctx.walk_output.allow_with_ancestors(&rel_path),
-                Verdict::Unaccounted => ctx.walk_output.mark_unaccounted_file(&rel_path),
+                Verdict::Allow { .. } => {
+                    ctx.walk_output.allow_with_ancestors(rel_path.clone(), true)
+                }
+                Verdict::Unaccounted => ctx.walk_output.mark_unaccounted_file(rel_path),
                 Verdict::Ignore { .. } => {
-                    ctx.walk_output.mark_ignored_file(&rel_path);
+                    ctx.walk_output.mark_ignored_file(rel_path.clone());
                 }
                 Verdict::IgnoredByInheritance { .. } => {
-                    ctx.walk_output.mark_ignored_file(&rel_path);
+                    ctx.walk_output.mark_ignored_file(rel_path);
                 }
             }
         } else {
