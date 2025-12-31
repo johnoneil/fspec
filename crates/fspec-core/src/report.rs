@@ -10,6 +10,9 @@ pub enum Status {
     Unaccounted,
 }
 
+// TODO: move string operations to form:
+// while let Some(rest) = t.strip_prefix("./") {
+// t = rest;
 fn canon_key(s: &str) -> String {
     let mut t = s.trim().replace('\\', "/");
 

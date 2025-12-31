@@ -67,8 +67,6 @@ fn split_kw_owned(s: &str) -> Option<(RuleKind, String)> {
 mod tests {
     use super::*;
 
-    use crate::spec::{FSEntry, FSPattern};
-
     #[test]
     fn parses_basic_rules_smoke() {
         let src = r#"
@@ -124,24 +122,4 @@ mod tests {
         // All should default to Allow
         assert!(rules.iter().all(|r| r.kind == RuleKind::Allow));
     }
-
-    // #[test]
-    // fn parses_basic_rules() {
-    //     let src = r#"
-    //     # comment
-    //     allow movies/Foo Bar (2001).mkv
-    //     ignore **/*.tmp
-    // "#;
-
-    //     let rules = parse_fspec(src).unwrap();
-    //     assert_eq!(rules.len(), 2);
-    //     assert_eq!(rules[0].line, 3);
-
-    //     assert_eq!(
-    //         rules[0].pattern,
-    //         FSPattern::Unanchored(vec![Component::FSEntry(Segment::Lit(
-    //             "movies/Foo Bar (2001).mkv".to_string()
-    //         ))])
-    //     );
-    // }
 }

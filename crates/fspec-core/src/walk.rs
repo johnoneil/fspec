@@ -12,6 +12,7 @@ use std::path::{Path, PathBuf};
 
 use crate::{Error, Rule};
 
+// TODO: to facilitate lookups, move Vec to HashSet<PathBuf> or BTreeSet<PathBuf>
 #[derive(Debug, Clone, Default)]
 pub struct WalkOutput {
     pub allowed_files: Vec<PathBuf>,
@@ -25,10 +26,14 @@ pub struct WalkOutput {
 impl WalkOutput {
     fn allow_with_ancestors(&mut self, path: &Path) {
         // 1) allow the path itself (unchanged)
+        // TODO: This is weak as files might not have an extension.
+        // We should use a more robust extension detection mechanism.
         if path.extension().is_some() {
             if !self.allowed_files.contains(&path.to_path_buf()) {
                 self.allowed_files.push(path.to_path_buf());
             }
+            // TODO: this could be made more efficient by using PathBuf throughout
+            // not comparing Path and Pathbuf which requires conversion.
             self.unaccounted_files.retain(|p| p != path);
             self.ignored_files.retain(|p| p != path);
         } else {
@@ -149,7 +154,6 @@ pub fn walk_tree(root: &Path, rules: &[Rule]) -> Result<WalkOutput, Error> {
         inherited: InheritedState::None,
     };
 
-    eprintln!("walk: start at {}", root.display());
     walk_dir(&mut ctx, rules)?;
 
     Ok(ctx.walk_output)
@@ -229,9 +233,6 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
                 }
             }
 
-            // Debug: directory child
-            eprintln!("{}+ dir  {}", indent(ctx.depth), ctx.rel.display());
-
             // Recurse
             walk_dir(ctx, rules)?;
 
@@ -253,20 +254,9 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
                     ctx.walk_output.mark_ignored_file(&rel_path);
                 }
             }
-
-            eprintln!(
-                "{}- file {}",
-                indent(ctx.depth + 1),
-                ctx.rel.join(name.as_ref()).display()
-            );
         } else {
             // symlink / fifo / socket / etc.
-            // For now, just note it.
-            eprintln!(
-                "{}? other {}",
-                indent(ctx.depth + 1),
-                ctx.rel.join(name.as_ref()).display()
-            );
+            // For now, silently skip (could be reported in future)
         }
     }
 
@@ -282,9 +272,9 @@ enum EntryKind {
 
 #[derive(Debug, Clone, Copy)]
 enum Verdict {
-    Allow { rule_idx: usize },
+    Allow { rule_idx: usize }, // rule_idx reserved for future diagnostics
     Ignore { rule_idx: usize },
-    IgnoredByInheritance { rule_idx: usize },
+    IgnoredByInheritance { rule_idx: usize }, // rule_idx reserved for future diagnostics
     Unaccounted,
 }
 
@@ -340,7 +330,6 @@ fn classify_entry_last_wins(
                     return Verdict::Ignore { rule_idx };
                 }
             }
-            _ => {}
         }
     }
 
@@ -355,6 +344,7 @@ fn classify_entry_last_wins(
     Verdict::Unaccounted
 }
 
+#[cfg(debug_assertions)]
 fn debug_enter(ctx: &WalkCtx, abs: &Path) {
     let rel_disp = if ctx.rel.as_os_str().is_empty() {
         ".".to_string()
@@ -372,6 +362,10 @@ fn debug_enter(ctx: &WalkCtx, abs: &Path) {
     );
 }
 
+#[cfg(not(debug_assertions))]
+fn debug_enter(_ctx: &WalkCtx, _abs: &Path) {}
+
+#[cfg(debug_assertions)]
 fn debug_exit(ctx: &WalkCtx, _abs: &Path) {
     let rel_disp = if ctx.rel.as_os_str().is_empty() {
         ".".to_string()
@@ -382,6 +376,10 @@ fn debug_exit(ctx: &WalkCtx, _abs: &Path) {
     eprintln!("{}< exit  {}", indent(ctx.depth), rel_disp);
 }
 
+#[cfg(not(debug_assertions))]
+fn debug_exit(_ctx: &WalkCtx, _abs: &Path) {}
+
+#[cfg(debug_assertions)]
 fn indent(depth: usize) -> String {
     // 2 spaces per depth, cheap and readable
     "  ".repeat(depth)

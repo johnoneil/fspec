@@ -95,7 +95,7 @@ fn parse_err(line: usize, col: usize, msg: impl Into<String>) -> Error {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::spec::{DirType, FSEntry::*, FSEntry::*, FSPattern::*, FileType};
+    use crate::spec::{DirType, FSEntry::*, FSPattern::*, FileType};
 
     #[test]
     fn unanchored_dir_then_entry() {

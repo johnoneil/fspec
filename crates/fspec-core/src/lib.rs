@@ -17,7 +17,7 @@ pub use severity::Severity;
 pub use spec::{DirType, FSEntry, FSPattern, FileType, Rule, RuleKind};
 pub use walk::{WalkCtx, WalkOutput};
 
-pub fn check_tree(root: &Path, default_severity: Severity) -> Result<Report, Error> {
+pub fn check_tree(root: &Path, _default_severity: Severity) -> Result<Report, Error> {
     // --- parse .fspec ---
     let fspec_path: PathBuf = root.join(".fspec");
 
@@ -34,13 +34,7 @@ pub fn check_tree(root: &Path, default_severity: Severity) -> Result<Report, Err
 
     let spec_rules = parse_fspec(&contents)?;
 
-    // DEBUG: remove later.
-    eprintln!("{:#?}", spec_rules);
-
     let walk_output = walk::walk_tree(root, &spec_rules)?;
-
-    // DEBUG: remove later
-    eprintln!("{:#?}", walk_output);
 
     let report = Report::from_walk_output(&walk_output);
 
