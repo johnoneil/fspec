@@ -222,7 +222,7 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
         } else if ty.is_file() {
             let rel_path = ctx.rel.join(name.as_ref());
 
-            match classify_entry_last_wins(&ctx, rules, &rel_path, EntryKind::File) {
+            match classify_entry_last_wins(ctx, rules, &rel_path, EntryKind::File) {
                 Verdict::Allow { .. } => {
                     ctx.walk_output.allow_with_ancestors(rel_path.clone(), true)
                 }
