@@ -433,4 +433,464 @@ mod tests {
         let err = Tokenizer::new(r#""abc"#).tokenize_all().unwrap_err();
         assert_eq!(err.kind, TokenizeErrorKind::UnterminatedQuotedString);
     }
+
+    // ===== Additional comprehensive tests =====
+
+    #[test]
+    fn empty_input() {
+        assert_eq!(toks(""), vec![]);
+    }
+
+    #[test]
+    fn only_literal_run() {
+        assert_eq!(toks("hello"), vec![Token::LiteralRun("hello".into())]);
+    }
+
+    #[test]
+    fn literal_run_with_spaces() {
+        assert_eq!(
+            toks("hello world"),
+            vec![Token::LiteralRun("hello world".into())]
+        );
+    }
+
+    #[test]
+    fn multiple_stars() {
+        assert_eq!(
+            toks("*.*"),
+            vec![Token::Star, Token::LiteralRun(".".into()), Token::Star]
+        );
+    }
+
+    #[test]
+    fn only_star() {
+        assert_eq!(toks("*"), vec![Token::Star]);
+    }
+
+    #[test]
+    fn multiple_quoted_strings() {
+        assert_eq!(
+            toks(r#""a" "b""#),
+            vec![
+                Token::QuotedString("a".into()),
+                Token::LiteralRun(" ".into()),
+                Token::QuotedString("b".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn quoted_string_with_escaped_quotes() {
+        assert_eq!(
+            toks(r#""say ""hello""""#),
+            vec![Token::QuotedString(r#"say "hello""#.into())]
+        );
+    }
+
+    #[test]
+    fn quoted_string_escaped_quote_at_start() {
+        assert_eq!(
+            toks(r#""""hello""#),
+            vec![Token::QuotedString(r#""hello"#.into())]
+        );
+    }
+
+    #[test]
+    fn quoted_string_escaped_quote_at_end() {
+        assert_eq!(
+            toks(r#""hello""""#),
+            vec![Token::QuotedString(r#"hello""#.into())]
+        );
+    }
+
+    #[test]
+    fn quoted_string_only_escaped_quotes() {
+        assert_eq!(toks(r#""""""#), vec![Token::QuotedString("\"".into())]);
+    }
+
+    #[test]
+    fn quoted_string_empty() {
+        assert_eq!(toks(r#""""#), vec![Token::QuotedString("".into())]);
+    }
+
+    #[test]
+    fn literal_run_with_special_chars_except_reserved() {
+        assert_eq!(
+            toks("file-name_123.test"),
+            vec![Token::LiteralRun("file-name_123.test".into())]
+        );
+    }
+
+    #[test]
+    fn literal_run_stops_at_star() {
+        assert_eq!(
+            toks("prefix*suffix"),
+            vec![
+                Token::LiteralRun("prefix".into()),
+                Token::Star,
+                Token::LiteralRun("suffix".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn literal_run_stops_at_brace() {
+        assert_eq!(
+            toks("prefix{suffix}"),
+            vec![
+                Token::LiteralRun("prefix".into()),
+                Token::LBrace,
+                Token::Ident("suffix".into()),
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn literal_run_stops_at_quote() {
+        assert_eq!(
+            toks(r#"prefix"quoted"suffix"#),
+            vec![
+                Token::LiteralRun("prefix".into()),
+                Token::QuotedString("quoted".into()),
+                Token::LiteralRun("suffix".into()),
+            ]
+        );
+    }
+
+    #[test]
+    fn inside_braces_just_ident() {
+        assert_eq!(
+            toks("{x}"),
+            vec![Token::LBrace, Token::Ident("x".into()), Token::RBrace,]
+        );
+    }
+
+    #[test]
+    fn inside_braces_just_number() {
+        assert_eq!(
+            toks("{123}"),
+            vec![Token::LBrace, Token::Number("123".into()), Token::RBrace,]
+        );
+    }
+
+    #[test]
+    fn inside_braces_just_quoted_string() {
+        assert_eq!(
+            toks(r#"{ "hello" }"#),
+            vec![
+                Token::LBrace,
+                Token::QuotedString("hello".into()),
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn inside_braces_whitespace_tolerance_around_colon() {
+        assert_eq!(
+            toks("{x:y}"),
+            vec![
+                Token::LBrace,
+                Token::Ident("x".into()),
+                Token::Colon,
+                Token::Ident("y".into()),
+                Token::RBrace,
+            ]
+        );
+        assert_eq!(
+            toks("{ x : y }"),
+            vec![
+                Token::LBrace,
+                Token::Ident("x".into()),
+                Token::Colon,
+                Token::Ident("y".into()),
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn inside_braces_whitespace_tolerance_around_pipe() {
+        assert_eq!(
+            toks("{a|b}"),
+            vec![
+                Token::LBrace,
+                Token::Ident("a".into()),
+                Token::Pipe,
+                Token::Ident("b".into()),
+                Token::RBrace,
+            ]
+        );
+        assert_eq!(
+            toks("{ a | b }"),
+            vec![
+                Token::LBrace,
+                Token::Ident("a".into()),
+                Token::Pipe,
+                Token::Ident("b".into()),
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn inside_braces_whitespace_tolerance_around_parens() {
+        assert_eq!(
+            toks("{x:y()}"),
+            vec![
+                Token::LBrace,
+                Token::Ident("x".into()),
+                Token::Colon,
+                Token::Ident("y".into()),
+                Token::LParen,
+                Token::RParen,
+                Token::RBrace,
+            ]
+        );
+        assert_eq!(
+            toks("{ x : y( ) }"),
+            vec![
+                Token::LBrace,
+                Token::Ident("x".into()),
+                Token::Colon,
+                Token::Ident("y".into()),
+                Token::LParen,
+                Token::RParen,
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn inside_braces_whitespace_tolerance_around_comma() {
+        assert_eq!(
+            toks("{x:y(a,b)}"),
+            vec![
+                Token::LBrace,
+                Token::Ident("x".into()),
+                Token::Colon,
+                Token::Ident("y".into()),
+                Token::LParen,
+                Token::Ident("a".into()),
+                Token::Comma,
+                Token::Ident("b".into()),
+                Token::RParen,
+                Token::RBrace,
+            ]
+        );
+        assert_eq!(
+            toks("{ x : y( a , b ) }"),
+            vec![
+                Token::LBrace,
+                Token::Ident("x".into()),
+                Token::Colon,
+                Token::Ident("y".into()),
+                Token::LParen,
+                Token::Ident("a".into()),
+                Token::Comma,
+                Token::Ident("b".into()),
+                Token::RParen,
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn inside_braces_multiple_numbers() {
+        assert_eq!(
+            toks("{123 456}"),
+            vec![
+                Token::LBrace,
+                Token::Number("123".into()),
+                Token::Number("456".into()),
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn inside_braces_ident_with_underscore() {
+        assert_eq!(
+            toks("{my_var}"),
+            vec![Token::LBrace, Token::Ident("my_var".into()), Token::RBrace,]
+        );
+    }
+
+    #[test]
+    fn inside_braces_ident_with_digits() {
+        assert_eq!(
+            toks("{var123}"),
+            vec![Token::LBrace, Token::Ident("var123".into()), Token::RBrace,]
+        );
+    }
+
+    #[test]
+    fn inside_braces_quoted_string_with_special_chars() {
+        assert_eq!(
+            toks(r#"{ "a*b{c}d" }"#),
+            vec![
+                Token::LBrace,
+                Token::QuotedString("a*b{c}d".into()),
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn inside_braces_quoted_string_with_escaped_quotes() {
+        assert_eq!(
+            toks(r#"{ """quoted""" }"#),
+            vec![
+                Token::LBrace,
+                Token::QuotedString(r#""quoted""#.into()),
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn nested_braces_rejected_by_tokenizer() {
+        // Nested braces are not allowed - the tokenizer should reject a { inside braces
+        let err = Tokenizer::new("{{x}}").tokenize_all().unwrap_err();
+        assert_eq!(err.kind, TokenizeErrorKind::UnexpectedChar('{'));
+        assert_eq!(err.at, 1);
+    }
+
+    #[test]
+    fn complex_mixed_component() {
+        assert_eq!(
+            toks(r#"file"*"*{ext|"txt"}"#),
+            vec![
+                Token::LiteralRun("file".into()),
+                Token::QuotedString("*".into()),
+                Token::Star,
+                Token::LBrace,
+                Token::Ident("ext".into()),
+                Token::Pipe,
+                Token::QuotedString("txt".into()),
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn unterminated_quote_inside_braces() {
+        let err = Tokenizer::new(r#"{ "abc"#).tokenize_all().unwrap_err();
+        assert_eq!(err.kind, TokenizeErrorKind::UnterminatedQuotedString);
+    }
+
+    #[test]
+    fn unterminated_quote_after_escaped_quote() {
+        let err = Tokenizer::new(r#""abc"""#).tokenize_all().unwrap_err();
+        assert_eq!(err.kind, TokenizeErrorKind::UnterminatedQuotedString);
+    }
+
+    #[test]
+    fn unmatched_rbrace_after_valid_brace() {
+        let err = Tokenizer::new("{x}}").tokenize_all().unwrap_err();
+        assert_eq!(err.kind, TokenizeErrorKind::UnmatchedRBrace);
+    }
+
+    #[test]
+    fn unmatched_rbrace_in_middle() {
+        let err = Tokenizer::new("a}b").tokenize_all().unwrap_err();
+        assert_eq!(err.kind, TokenizeErrorKind::UnmatchedRBrace);
+    }
+
+    #[test]
+    fn whitespace_only_inside_braces() {
+        // Whitespace is skipped, so this should result in just braces
+        assert_eq!(toks("{   }"), vec![Token::LBrace, Token::RBrace]);
+    }
+
+    #[test]
+    fn tab_and_newline_whitespace() {
+        assert_eq!(
+            toks("{\t\n\rx\t\n\r}"),
+            vec![Token::LBrace, Token::Ident("x".into()), Token::RBrace,]
+        );
+    }
+
+    #[test]
+    fn number_followed_by_ident() {
+        assert_eq!(
+            toks("{123abc}"),
+            vec![
+                Token::LBrace,
+                Token::Number("123".into()),
+                Token::Ident("abc".into()),
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn ident_starting_with_underscore() {
+        assert_eq!(
+            toks("{_private}"),
+            vec![
+                Token::LBrace,
+                Token::Ident("_private".into()),
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn quoted_string_inside_braces_with_spaces() {
+        // Spaces inside quoted strings are literal
+        assert_eq!(
+            toks(r#"{ "hello world" }"#),
+            vec![
+                Token::LBrace,
+                Token::QuotedString("hello world".into()),
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn limiter_with_all_arg_types() {
+        assert_eq!(
+            toks("{x:lim(123, abc, \"str\")}"),
+            vec![
+                Token::LBrace,
+                Token::Ident("x".into()),
+                Token::Colon,
+                Token::Ident("lim".into()),
+                Token::LParen,
+                Token::Number("123".into()),
+                Token::Comma,
+                Token::Ident("abc".into()),
+                Token::Comma,
+                Token::QuotedString("str".into()),
+                Token::RParen,
+                Token::RBrace,
+            ]
+        );
+    }
+
+    #[test]
+    fn empty_quoted_string_inside_braces() {
+        assert_eq!(
+            toks(r#"{ "" }"#),
+            vec![Token::LBrace, Token::QuotedString("".into()), Token::RBrace,]
+        );
+    }
+
+    #[test]
+    fn multiple_consecutive_literal_runs() {
+        // This shouldn't happen in practice, but tests the tokenizer behavior
+        assert_eq!(
+            toks("a*b*c"),
+            vec![
+                Token::LiteralRun("a".into()),
+                Token::Star,
+                Token::LiteralRun("b".into()),
+                Token::Star,
+                Token::LiteralRun("c".into()),
+            ]
+        );
+    }
 }
