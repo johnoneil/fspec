@@ -3,5 +3,3 @@ members = ["crates/*"]
 resolver = "2"
 
 [workspace.dependencies]
-pest = "2.7"
-pest_derive = "2.7"
