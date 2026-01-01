@@ -79,6 +79,8 @@ Anything not matching these rules will be reported.
 
 ## The `.fspec` File Format (v1)
 
+This section gives a brief outline of the `.fspec` file format. [See the mini-grammar description for more detail](./crates/fspec-core/docs/fspec-file-grammar.md).
+
 An `.fspec` file is a **line-based specification**.
 
 ### Comments
@@ -171,7 +173,7 @@ Directories which pass file naming specs are emitted as warnings by default.
 
 ---
 
-## FSPattern Language
+## `FSPattern` Language
 
 FSPatterns are path-like strings with literals, globs, and placeholders.
 
@@ -192,6 +194,8 @@ src/**
 ### Placeholders
 
 Placeholders match exactly **one path segment** and may enforce constraints.
+
+This section gives a general overview of the placeholder syntax. [See the mini-grammar description for more detail](./crates/fspec-placeholder/docs/placeholder-grammar.md).
 
 Syntax:
 

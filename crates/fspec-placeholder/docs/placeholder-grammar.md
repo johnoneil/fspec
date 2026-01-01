@@ -1,6 +1,8 @@
 
 ## Placeholder / Component Mini-Grammar
 
+EBNF-style notation
+
 ### 0. Scope
 
 * This grammar parses **one path component** (text between `/` separators).
