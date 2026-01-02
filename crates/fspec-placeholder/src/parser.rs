@@ -344,57 +344,59 @@ fn parse_limiter_spec(c: &mut Cursor<'_>) -> Result<LimiterSpec, ParseError> {
     let mut args: Vec<LimiterArg> = Vec::new();
     let mut span = name_span;
 
-    if let Some(t) = c.peek() {
-        if matches!(t.token, Token::LParen) {
-            let lp = c.bump().unwrap();
-            span = Span::join(span, Span::new(lp.start, lp.end));
+    if c.peek()
+        .map(|t| matches!(t.token, Token::LParen))
+        .unwrap_or(false)
+    {
+        let lp = c.bump().unwrap();
+        span = Span::join(span, Span::new(lp.start, lp.end));
 
-            // Allow empty args: lim()
-            if let Some(t2) = c.peek() {
-                if matches!(t2.token, Token::RParen) {
-                    let rp = c.bump().unwrap();
-                    span = Span::join(span, Span::new(rp.start, rp.end));
-                    return Ok(LimiterSpec {
-                        name,
-                        name_span,
-                        args,
-                        span,
-                    });
-                }
+        // Allow empty args: lim()
+        if c.peek()
+            .map(|t| matches!(t.token, Token::RParen))
+            .unwrap_or(false)
+        {
+            let rp = c.bump().unwrap();
+            span = Span::join(span, Span::new(rp.start, rp.end));
+            return Ok(LimiterSpec {
+                name,
+                name_span,
+                args,
+                span,
+            });
+        }
+
+        // Parse args: arg (',' arg)*
+        loop {
+            let a = parse_limiter_arg(c)?;
+            span = Span::join(span, a_span(&a));
+            args.push(a);
+
+            let next = c.peek().ok_or_else(|| {
+                ParseError::new(
+                    ParseErrorKind::UnexpectedEof,
+                    span.end,
+                    Some(span),
+                    "expected ')' or ',' after limiter argument",
+                )
+            })?;
+
+            if matches!(next.token, Token::Comma) {
+                c.bump();
+                continue;
+            }
+            if matches!(next.token, Token::RParen) {
+                let rp = c.bump().unwrap();
+                span = Span::join(span, Span::new(rp.start, rp.end));
+                break;
             }
 
-            // Parse args: arg (',' arg)*
-            loop {
-                let a = parse_limiter_arg(c)?;
-                span = Span::join(span, a_span(&a));
-                args.push(a);
-
-                let next = c.peek().ok_or_else(|| {
-                    ParseError::new(
-                        ParseErrorKind::UnexpectedEof,
-                        span.end,
-                        Some(span),
-                        "expected ')' or ',' after limiter argument",
-                    )
-                })?;
-
-                if matches!(next.token, Token::Comma) {
-                    c.bump();
-                    continue;
-                }
-                if matches!(next.token, Token::RParen) {
-                    let rp = c.bump().unwrap();
-                    span = Span::join(span, Span::new(rp.start, rp.end));
-                    break;
-                }
-
-                return Err(ParseError::new(
-                    ParseErrorKind::ExpectedToken("',' or ')'"),
-                    next.start,
-                    Some(Span::new(next.start, next.end)),
-                    "expected ',' or ')' after limiter argument",
-                ));
-            }
+            return Err(ParseError::new(
+                ParseErrorKind::ExpectedToken("',' or ')'"),
+                next.start,
+                Some(Span::new(next.start, next.end)),
+                "expected ',' or ')' after limiter argument",
+            ));
         }
     }
 

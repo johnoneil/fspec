@@ -164,7 +164,7 @@ impl<'a> Tokenizer<'a> {
             }
             _ => {
                 // LiteralRun: read until next special: * { } "
-                let end = self.scan_until_any(&[b'*', b'{', b'}', b'"']);
+                let end = self.scan_until_any(b"*{}\"");
                 let lit = &self.input[start..end];
                 self.pos = end;
                 Ok(Some(SpannedToken {
@@ -342,11 +342,11 @@ impl<'a> Tokenizer<'a> {
 
 // Helpers: ASCII-only for now (good fit for initial conformance).
 fn is_ascii_digit(b: u8) -> bool {
-    b'0' <= b && b <= b'9'
+    b.is_ascii_digit()
 }
 
 fn is_ident_start(b: u8) -> bool {
-    (b'a' <= b && b <= b'z') || (b'A' <= b && b <= b'Z') || b == b'_'
+    b.is_ascii_alphabetic() || b == b'_'
 }
 
 fn is_ident_continue(b: u8) -> bool {

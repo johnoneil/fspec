@@ -1,0 +1,7 @@
+# Custom Dictionary Words
+idxs
+goldens
+lspan
+toks
+rspan
+rparen
