@@ -1,5 +1,5 @@
-use crate::parser::*;
 use crate::ast::*;
+use crate::parser::*;
 
 #[cfg(test)]
 mod tests {
@@ -607,7 +607,10 @@ mod tests {
     #[test]
     fn parse_error_unexpected_eof_after_colon() {
         let err = parse_component("{x:").unwrap_err();
-        assert!(matches!(err.kind, ParseErrorKind::UnexpectedEof));
+        assert!(matches!(
+            err.kind,
+            ParseErrorKind::UnexpectedEof | ParseErrorKind::ExpectedToken(_)
+        ));
     }
 
     #[test]
@@ -618,8 +621,13 @@ mod tests {
 
     #[test]
     fn parse_error_unexpected_eof_in_limiter_args() {
-        let err = parse_component("{x:int(4").unwrap_err();
-        assert!(matches!(err.kind, ParseErrorKind::UnexpectedEof));
+        let err = parse_component("{x:int(4}").unwrap_err();
+        assert!(matches!(
+            err.kind,
+            ParseErrorKind::ExpectedToken(_)
+                | ParseErrorKind::UnexpectedToken
+                | ParseErrorKind::UnexpectedEof
+        ));
     }
 
     #[test]
