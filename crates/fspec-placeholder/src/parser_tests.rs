@@ -316,7 +316,7 @@ mod tests {
 
     #[test]
     fn parse_capture_with_limiter_single_ident_arg() {
-        let ast = parse_component("{x:lim(abc)}").unwrap();
+        let ast = parse_component("{x:re(abc)}").unwrap();
         let p = match &ast.parts[0] {
             Part::Placeholder(p) => p,
             _ => panic!("expected placeholder"),
@@ -326,6 +326,7 @@ mod tests {
             _ => panic!("expected capture"),
         };
         let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "re");
         assert_eq!(lim.args.len(), 1);
         match &lim.args[0] {
             LimiterArg::Ident { value, .. } => assert_eq!(value, "abc"),
@@ -335,7 +336,7 @@ mod tests {
 
     #[test]
     fn parse_capture_with_limiter_single_str_arg() {
-        let ast = parse_component(r#"{x:lim("str")}"#).unwrap();
+        let ast = parse_component(r#"{x:re("str")}"#).unwrap();
         let p = match &ast.parts[0] {
             Part::Placeholder(p) => p,
             _ => panic!("expected placeholder"),
@@ -345,6 +346,7 @@ mod tests {
             _ => panic!("expected capture"),
         };
         let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "re");
         assert_eq!(lim.args.len(), 1);
         match &lim.args[0] {
             LimiterArg::Str { value, .. } => assert_eq!(value, "str"),
@@ -354,7 +356,7 @@ mod tests {
 
     #[test]
     fn parse_capture_with_limiter_multiple_args() {
-        let ast = parse_component(r#"{x:lim(123, abc, "str")}"#).unwrap();
+        let ast = parse_component(r#"{x:re(123, abc, "str")}"#).unwrap();
         let p = match &ast.parts[0] {
             Part::Placeholder(p) => p,
             _ => panic!("expected placeholder"),
@@ -364,6 +366,7 @@ mod tests {
             _ => panic!("expected capture"),
         };
         let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "re");
         assert_eq!(lim.args.len(), 3);
         match &lim.args[0] {
             LimiterArg::Number { value, .. } => assert_eq!(value, "123"),
@@ -560,7 +563,7 @@ mod tests {
 
     #[test]
     fn parse_limiter_with_whitespace_around_comma() {
-        let ast = parse_component("{x:lim( a , b )}").unwrap();
+        let ast = parse_component("{x:re( a , b )}").unwrap();
         let p = match &ast.parts[0] {
             Part::Placeholder(p) => p,
             _ => panic!("expected placeholder"),
@@ -570,6 +573,7 @@ mod tests {
             _ => panic!("expected capture"),
         };
         let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "re");
         assert_eq!(lim.args.len(), 2);
     }
 
@@ -641,7 +645,7 @@ mod tests {
 
     #[test]
     fn parse_error_expected_comma_or_rparen_in_limiter() {
-        let err = parse_component("{x:lim(4 5)}").unwrap_err();
+        let err = parse_component("{x:int(4 5)}").unwrap_err();
         // This should error because after 4, we expect comma or rparen, not another number
         // Actually, the tokenizer will produce: Ident, Colon, Ident, LParen, Number, Number, RParen
         // The parser should catch that after Number, we need Comma or RParen
@@ -664,7 +668,7 @@ mod tests {
 
     #[test]
     fn parse_limiter_with_quoted_string_arg_containing_special_chars() {
-        let ast = parse_component(r#"{x:lim("a*b{c}d")}"#).unwrap();
+        let ast = parse_component(r#"{x:re("a*b{c}d")}"#).unwrap();
         let p = match &ast.parts[0] {
             Part::Placeholder(p) => p,
             _ => panic!("expected placeholder"),
@@ -674,6 +678,7 @@ mod tests {
             _ => panic!("expected capture"),
         };
         let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "re");
         assert_eq!(lim.args.len(), 1);
         match &lim.args[0] {
             LimiterArg::Str { value, .. } => assert_eq!(value, "a*b{c}d"),
@@ -683,7 +688,7 @@ mod tests {
 
     #[test]
     fn parse_limiter_with_quoted_string_arg_containing_escaped_quotes() {
-        let ast = parse_component(r#"{x:lim("""quoted""")}"#).unwrap();
+        let ast = parse_component(r#"{x:re("""quoted""")}"#).unwrap();
         let p = match &ast.parts[0] {
             Part::Placeholder(p) => p,
             _ => panic!("expected placeholder"),
@@ -693,6 +698,7 @@ mod tests {
             _ => panic!("expected capture"),
         };
         let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "re");
         assert_eq!(lim.args.len(), 1);
         match &lim.args[0] {
             LimiterArg::Str { value, .. } => assert_eq!(value, r#""quoted""#),
