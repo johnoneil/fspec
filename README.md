@@ -57,20 +57,19 @@ This allows structured organization and transitional “unsorted” areas and is
 `fspec` can also be used to enforce file structure and naming in code repositories, though that is not its focus.
 
 ```fspec
-# ignore build artifacts everywhere
-ignore target/
+# ignore build artifacts at root.
+# if artifacts are polluting crates, it will be reported.
+ignore /target/
 
 # root workspace files
+# we allow a Cargo.lock at workspace root and nowhere else.
 allow /Cargo.toml
 allow /Cargo.lock
 
-# Rust source must be snake_case
-allow {snake_case}.rs
-
-# crates layout
+# crates.
+# kebab-case crate naming and snake_case source files.
 allow /crates/{crate:kebab-case}/Cargo.toml
-allow /crates/{crate:kebab-case}/src/**/
-allow /crates/{crate:kebab-case}/src/**/{snake_case}.rs
+allow /crates/{crate:kebab-case}/{src|tests|examples}/**/{snake_case}.rs
 ```
 
 Anything not matching these rules will be reported.
@@ -95,6 +94,7 @@ Each non-comment line is a rule:
 
 | Prefix   | Meaning  |
 | -------- | -------- |
+| `` (none) | Defaults to `allow`, below |
 | `allow`  | Allows a given directory or file and its ancestors to exist without error.  |
 | `ignore` | Ignores a file or directory, removing it and all its possible descendants from checks.  |
 
@@ -102,7 +102,7 @@ Examples:
 
 ```fspec
 # allow the file named `Cargo.toml` file at fspec root.
-allow /Cargo.toml
+./Cargo.toml
 # allow a rust file anywhere as long as its filename is snake_case
 allow {snake_case}.rs
 # Ignore the .git directory at fspec root.
@@ -127,7 +127,8 @@ Anything not ignored or matched by an `allow` rule is reported (warning or error
 * FSPatterns starting with `./` or `/` (equivalent) are **anchored** at the directory containing the `.fspec`.
 
 ```fspec
-# these are equivalent patterns, anchored at directory containing the .fspec
+# these three examples are equivalent patterns, anchored at directory containing the .fspec
+./src/main.rs
 allow ./src/main.rs
 allow /src/main.rs
 ```
@@ -135,8 +136,8 @@ allow /src/main.rs
 * FSPatterns without a leading `./` or `/` are **unanchored** and may match anywhere.
 
 ```fspec
-/bin  # only matches ./bin
 ./bin # only matches ./bin
+/bin  # only matches ./bin
 bin # matches bin at any depth
 ```
 
@@ -144,11 +145,10 @@ bin # matches bin at any depth
 
 * ignore suppresses reporting of violations for a file or directory and its descendants unless later rules re-include them.
 * A trailing `/` means *directory-only*
-* Because unanchored rules may re-include paths under previously ignored directories, fspec may still traverse ignored directories when unanchored rules are present.
 
 ```fspec
-ignore /bin/    # ignore a *directory* named "bin" at fspec root (anchored).
-ignore /bin     # ignore a file named "bin" at fspec root (anchored)
+ignore ./bin/    # ignore a *directory* named "bin" at fspec root (anchored).
+ignore ./bin     # ignore a file named "bin" at fspec root (anchored)
 ignore bin/     # ignore a directory named "bin" anywhere.
 ignore bin      # ignore a *file* named "bin" anywhere.
 ```
@@ -173,9 +173,11 @@ Directories which pass file naming specs are emitted as warnings by default.
 
 ---
 
-## `FSPattern` Language
+## `fspec` Pattern Language
 
-FSPatterns are path-like strings with literals, globs, and placeholders.
+`fspec` patterns are path-like strings with literals, globs, and placeholders.
+
+This section gives a general overview of the pattern syntax. [See the mini-grammar description for more detail](./crates/fspec-placeholder/docs/placeholder-grammar.md).
 
 ### Globs
 
@@ -194,8 +196,6 @@ src/**
 ### Placeholders
 
 Placeholders match exactly **one path segment** and may enforce constraints.
-
-This section gives a general overview of the placeholder syntax. [See the mini-grammar description for more detail](./crates/fspec-placeholder/docs/placeholder-grammar.md).
 
 Syntax:
 
@@ -224,9 +224,11 @@ season_{season:int(2+)}
 
 ### Repeated placeholders
 
-If the same placeholder tag appears more than once in a pattern, all occurrences must match the **same value**.
+If the same placeholder tag appears more than once in a single pattern, all occurrences must match the **same value**.
 
 ```fspec
+# Year must match across the `year` placeholders for the rule to apply.
+# This helps enforce the sort of consistency in naming that humans are bad at.
 movies/{year:int(4)}/{snake_case}_{year}.mp4
 ```
 
@@ -263,15 +265,19 @@ fspec is intentionally staged. Not all features need to exist at once.
 
 ## Level 1 — Extraction
 
-- [ ] placeholder capture
-- [ ] repeated placeholder equality
-- [ ] ambiguity detection and warnings
-- [ ] permit alternate syntaxes
+- [ ] placeholder capture and parsing.
+- [ ] Initial group of limiters parsed and provided to clients as part of an AST.
+- [ ] Implement `./file` as either a file or directory to match `fined` and `.gitignore` behavior. Ensure behavior is switchable (between "file only" and "file or directory" to allow later strictness switches.)
+- [ ] Improve allowed comments in the grammar and impl. Allow `#` anywhere.
 - [ ] Union limiter (`ext:mp4|mkv`) or `int(2+)`
+- [ ] repeated placeholder equality
+- [ ] Introduce a command line tool wrapper crate.
+- [ ] Make the basic rule engine usable in real world cases.
 
 ## Level 2 — Diagnostics
 
 - [ ] explain which rule matched
+- [ ] ambiguity detection and warnings
 - [ ] warn on re-allowed ignored paths
 - [ ] warn on ambiguous matches
 

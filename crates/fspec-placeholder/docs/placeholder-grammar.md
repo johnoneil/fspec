@@ -1,4 +1,3 @@
-
 ## Placeholder / Component Mini-Grammar
 
 EBNF-style notation
@@ -42,7 +41,7 @@ literal_char     := any char except: '*', '{', '}', '"'
 
 (Everything else — including spaces — is literal outside `{}`.)
 
-### 2.2 Quoted literals (new primary escape mechanism)
+### 2.2 Quoted literals (primary escape mechanism)
 
 ```ebnf
 quoted_literal   := DQUOTE qchar* DQUOTE
@@ -100,22 +99,72 @@ allow file.{"mp*4"|"m/v"|"""in quotes"""}
 
 ---
 
-## 4. Limiters (with whitespace tolerance)
+## 4. Limiters (Level-1 conformance set)
+
+Level-1 goal: parse limiters in a way that is **strict for known names**
+but **future-proof** for later expansion.
+
+### 4.1 Syntax
 
 ```ebnf
-limiter_spec     := IDENT (WS* "(" WS* limiter_args? WS* ")" )?
+limiter_spec        := limiter_name (WS* "(" WS* limiter_args? WS* ")" )?
 
-limiter_args     := limiter_arg (WS* "," WS* limiter_arg)*
+// NOTE: At Level 1, `limiter_name` is restricted to the list below.
+// Future conformance levels may expand this set.
+limiter_name        := "snake_case"
+                     | "kebab_case"
+                     | "pascal_case"
+                     | "upper_case"
+                     | "lower_case"
+                     | "int"
+                     | "re"
+                     | "letters"
+                     | "numbers"
+                     | "alnum"
 
-limiter_arg      := NUMBER
-                  | IDENT
-                  | quoted_string
+limiter_args        := limiter_arg (WS* "," WS* limiter_arg)*
+
+limiter_arg         := NUMBER
+                     | IDENT
+                     | quoted_string
 ```
 
-Whitespace rule inside `{ ... }`:
+### 4.2 Level-1 semantic constraints
+
+After parsing `limiter_spec`, Level-1 validation applies these rules:
+
+* No-arg limiters (must have **zero** args, and may omit parens):
+  * `snake_case`, `kebab_case`, `pascal_case`, `upper_case`, `lower_case`
+  * `letters`, `numbers`, `alnum`
+
+  Examples:
+  ```fspec
+  {name:snake_case}
+  {name:snake_case()}
+  {tok:letters}
+  ```
+
+* `int(n)` (must have **exactly one** numeric arg):
+  * `n >= 1`
+  * matches exactly `n` ASCII digits `[0-9]`
+
+  Example:
+  ```fspec
+  {year:int(4)}
+  ```
+
+* `re("...")` (must have **exactly one** string arg):
+  * arg must be a quoted string (so escapes follow `""` rules)
+  * regex dialect is implementation-defined (recommend: Rust `regex` crate)
+
+  Example:
+  ```fspec
+  {slug:re("[a-z0-9_-]+")}
+  ```
+
+### 4.3 Whitespace tolerance inside `{ ... }`
 
 * `WS*` is allowed:
-
   * before/after the placeholder body
   * around `:`
   * around `|`
@@ -138,5 +187,3 @@ So these are equivalent:
 * `*` matches any sequence of chars **except** `/`.
 * Placeholders never match `/`.
 * Quoted literals match exactly their literal content.
-
----

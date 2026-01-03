@@ -49,6 +49,22 @@ pub enum Choice {
     Str { value: String, span: Span }, // quoted string
 }
 
+/// A limiter applied to a capture, e.g. `int(4)` or `re("...")`
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LimiterSpec {
+    /// Limiter name, e.g. "int", "re"
+    pub name: String,
+
+    /// Span of the limiter name
+    pub name_span: Span,
+
+    /// Arguments inside parentheses, if any
+    pub args: Vec<LimiterArg>,
+
+    /// Span of the entire limiter expression, e.g. `int(4)`
+    pub span: Span,
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CaptureNode {
     pub name: String,
@@ -58,18 +74,68 @@ pub struct CaptureNode {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LimiterSpec {
-    pub name: String,
-    pub name_span: Span,
-    pub args: Vec<LimiterArg>,
-    pub span: Span,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum LimiterArg {
     Number { value: String, span: Span },
     Ident { value: String, span: Span },
     Str { value: String, span: Span },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Limiter {
+    // --- Level-1 known limiters ---
+
+    // ASCII case / style
+    SnakeCase {
+        span: Span,
+    },
+    KebabCase {
+        span: Span,
+    },
+    PascalCase {
+        span: Span,
+    },
+    UpperCase {
+        span: Span,
+    },
+    LowerCase {
+        span: Span,
+    },
+
+    // exactly n ASCII digits [0-9], where n >= 1
+    Int {
+        digits: u32,
+        digits_span: Span,
+        span: Span,
+    },
+
+    // regex escape hatch (dialect is implementation-defined; recommend Rust `regex`)
+    Re {
+        pattern: String,
+        pattern_span: Span,
+        span: Span,
+    },
+
+    // Unicode properties
+    Letters {
+        span: Span,
+    }, // \p{L}
+    Numbers {
+        span: Span,
+    }, // \p{Nd}
+    Alnum {
+        span: Span,
+    }, // \p{L}\p{Nd}
+
+    // --- Forward compatibility ---
+    //
+    // Parsers at a given conformance level may reject `Unknown`, but the AST
+    // can still represent it to enable higher-level tooling and future levels.
+    Unknown {
+        name: String,
+        name_span: Span,
+        args: Vec<LimiterArg>,
+        span: Span,
+    },
 }
 
 /// Byte span in the original component string.
