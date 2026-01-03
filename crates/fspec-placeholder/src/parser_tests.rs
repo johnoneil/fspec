@@ -719,4 +719,191 @@ mod tests {
         };
         assert_eq!(one.choices.len(), 5);
     }
+
+    // ===== Tests for valid Level-1 limiter names =====
+
+    #[test]
+    fn parse_snake_case_limiter() {
+        let ast = parse_component("{name:snake_case}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        assert_eq!(c.name, "name");
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "snake_case");
+        assert_eq!(lim.args.len(), 0);
+    }
+
+    #[test]
+    fn parse_snake_case_limiter_with_parens() {
+        let ast = parse_component("{name:snake_case()}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "snake_case");
+        assert_eq!(lim.args.len(), 0);
+    }
+
+    #[test]
+    fn parse_kebab_case_limiter() {
+        let ast = parse_component("{name:kebab_case}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "kebab_case");
+        assert_eq!(lim.args.len(), 0);
+    }
+
+    #[test]
+    fn parse_pascal_case_limiter() {
+        let ast = parse_component("{name:pascal_case}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "pascal_case");
+        assert_eq!(lim.args.len(), 0);
+    }
+
+    #[test]
+    fn parse_upper_case_limiter() {
+        let ast = parse_component("{name:upper_case}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "upper_case");
+        assert_eq!(lim.args.len(), 0);
+    }
+
+    #[test]
+    fn parse_lower_case_limiter() {
+        let ast = parse_component("{name:lower_case}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "lower_case");
+        assert_eq!(lim.args.len(), 0);
+    }
+
+    #[test]
+    fn parse_letters_limiter() {
+        let ast = parse_component("{tok:letters}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "letters");
+        assert_eq!(lim.args.len(), 0);
+    }
+
+    #[test]
+    fn parse_numbers_limiter() {
+        let ast = parse_component("{tok:numbers}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "numbers");
+        assert_eq!(lim.args.len(), 0);
+    }
+
+    #[test]
+    fn parse_alnum_limiter() {
+        let ast = parse_component("{tok:alnum}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "alnum");
+        assert_eq!(lim.args.len(), 0);
+    }
+
+    #[test]
+    fn parse_int_limiter_with_numeric_arg() {
+        let ast = parse_component("{year:int(4)}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "int");
+        assert_eq!(lim.args.len(), 1);
+        match &lim.args[0] {
+            LimiterArg::Number { value, .. } => assert_eq!(value, "4"),
+            _ => panic!("expected number arg"),
+        }
+    }
+
+    #[test]
+    fn parse_re_limiter_with_string_arg() {
+        let ast = parse_component(r#"{slug:re("[a-z0-9_-]+")}"#).unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "re");
+        assert_eq!(lim.args.len(), 1);
+        match &lim.args[0] {
+            LimiterArg::Str { value, .. } => assert_eq!(value, "[a-z0-9_-]+"),
+            _ => panic!("expected str arg"),
+        }
+    }
 }
