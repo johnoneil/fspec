@@ -265,12 +265,12 @@ fspec is intentionally staged. Not all features need to exist at once.
 
 ## Level 1 — Extraction
 
-- [ ] placeholder capture and parsing.
-- [ ] Initial group of limiters parsed and provided to clients as part of an AST.
-- [ ] Implement `./file` as either a file or directory to match `fined` and `.gitignore` behavior. Ensure behavior is switchable (between "file only" and "file or directory" to allow later strictness switches.)
+- [x] placeholder capture and parsing.
+- [x] Initial group of limiters parsed and provided to clients as part of an AST.
 - [ ] Improve allowed comments in the grammar and impl. Allow `#` anywhere.
-- [ ] Union limiter (`ext:mp4|mkv`) or `int(2+)`
-- [ ] repeated placeholder equality
+- [ ] repeated placeholder equality (`year` = `year`)
+- [ ] Improve union limiter to allow names like `ext` in `{ext:mp4|mkv}`
+- [ ] Implement `./file` as either a file or directory to match `fined` and `.gitignore` behavior. Ensure behavior is switchable (between "file only" and "file or directory" to allow later strictness switches.)
 - [ ] Introduce a command line tool wrapper crate.
 - [ ] Make the basic rule engine usable in real world cases.
 
