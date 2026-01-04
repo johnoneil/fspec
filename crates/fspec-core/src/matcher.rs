@@ -8,12 +8,12 @@ enum Terminal {
     Dir,
 }
 
-fn matches_terminal_pat(terminal: Terminal, pat: &FSEntry, actual: &str) -> bool {
+fn matches_terminal_pat(terminal: Terminal, pat: &FSEntry, _actual: &str) -> bool {
     match (terminal, pat) {
-        (Terminal::File, FSEntry::File(FileType::Lit(lit))) => lit == actual,
+        (Terminal::File, FSEntry::File(FileType::Component(_component))) => true,
         (Terminal::File, FSEntry::File(FileType::Star)) => true,
 
-        (Terminal::Dir, FSEntry::Dir(DirType::Lit(lit))) => lit == actual,
+        (Terminal::Dir, FSEntry::Dir(DirType::Component(_component))) => true,
         (Terminal::Dir, FSEntry::Dir(DirType::Star)) => true,
         // NOTE: DoubleStar is handled in DP; it is not a valid "single dir name" terminal.
         (Terminal::Dir, FSEntry::Dir(DirType::DoubleStar)) => false,
@@ -22,9 +22,10 @@ fn matches_terminal_pat(terminal: Terminal, pat: &FSEntry, actual: &str) -> bool
     }
 }
 
-fn matches_dir_pat(pat: &FSEntry, actual: &str) -> bool {
+fn matches_dir_pat(pat: &FSEntry, _actual: &str) -> bool {
     match pat {
-        FSEntry::Dir(DirType::Lit(lit)) => lit == actual,
+        //FSEntry::Dir(DirType::Lit(lit)) => lit == actual,
+        FSEntry::Dir(DirType::Component(_component)) => true,
         FSEntry::Dir(DirType::Star) => true,
         // NOTE: DoubleStar is handled in the DP transitions, not as a single-step match.
         FSEntry::Dir(DirType::DoubleStar) => false,

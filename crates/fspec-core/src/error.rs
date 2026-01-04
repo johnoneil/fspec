@@ -1,3 +1,4 @@
+use fspec_placeholder::parser::ParseError;
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -21,6 +22,16 @@ impl From<std::io::Error> for Error {
         Error::Io {
             path: "Unknown".into(),
             source: e,
+        }
+    }
+}
+
+impl From<ParseError> for Error {
+    fn from(e: ParseError) -> Self {
+        Error::Parse {
+            line: e.at,
+            col: e.at,
+            msg: e.message,
         }
     }
 }

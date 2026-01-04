@@ -1,5 +1,8 @@
 use crate::error::Error;
 use crate::spec::{DirType, FSEntry, FSPattern, FileType};
+//use fspec_placeholder::ast::*;
+use fspec_placeholder::ast::*;
+use fspec_placeholder::parse_component;
 
 pub(crate) fn parse_pattern_str(raw: &str, line: usize) -> Result<FSPattern, Error> {
     let s0 = raw.trim();
@@ -50,15 +53,15 @@ pub(crate) fn parse_pattern_str(raw: &str, line: usize) -> Result<FSPattern, Err
         let is_last = i == last_idx;
 
         if !is_last {
-            entries.push(FSEntry::Dir(parse_dir(part)));
+            entries.push(FSEntry::Dir(parse_dir(part)?));
             continue;
         }
 
         // Final component depends on trailing slash.
         if ends_with_slash {
-            entries.push(FSEntry::Dir(parse_dir(part)));
+            entries.push(FSEntry::Dir(parse_dir(part)?));
         } else {
-            entries.push(FSEntry::File(parse_file(part)));
+            entries.push(FSEntry::File(parse_file(part)?));
         }
     }
 
@@ -69,18 +72,24 @@ pub(crate) fn parse_pattern_str(raw: &str, line: usize) -> Result<FSPattern, Err
     })
 }
 
-fn parse_dir(s: &str) -> DirType {
+fn parse_dir(s: &str) -> Result<DirType, Error> {
     match s {
-        "*" => DirType::Star,
-        "**" => DirType::DoubleStar,
-        _ => DirType::Lit(s.to_string()),
+        "*" => Ok(DirType::Star),
+        "**" => Ok(DirType::DoubleStar),
+        _ => {
+            let component = parse_component(s)?;
+            Ok(DirType::Component(component))
+        }
     }
 }
 
-fn parse_file(s: &str) -> FileType {
+fn parse_file(s: &str) -> Result<FileType, Error> {
     match s {
-        "*" => FileType::Star,
-        _ => FileType::Lit(s.to_string()),
+        "*" => Ok(FileType::Star),
+        _ => {
+            let component = parse_component(s)?;
+            Ok(FileType::Component(component))
+        }
     }
 }
 
@@ -94,8 +103,16 @@ fn parse_err(line: usize, col: usize, msg: impl Into<String>) -> Error {
 
 #[cfg(test)]
 mod tests {
+    use fspec_placeholder::ComponentAst;
+
     use super::*;
     use crate::spec::{DirType, FSEntry::*, FSPattern::*, FileType};
+
+    use fspec_placeholder::parse_component;
+
+    fn c(s: &str) -> ComponentAst {
+        parse_component(s).unwrap()
+    }
 
     #[test]
     fn unanchored_dir_then_entry() {
@@ -103,9 +120,11 @@ mod tests {
         assert_eq!(
             p,
             Unanchored(vec![
-                Dir(DirType::Lit("assets".into())),
+                //Dir(DirType::Component(c("assets"))),
+                Dir(DirType::Component(c("assets"))),
                 Dir(DirType::Star),
-                File(FileType::Lit("*.png".into()))
+                //File(FileType::Component(c("*.png"))),
+                File(FileType::Component(c("*.png"))),
             ])
         );
     }
@@ -115,7 +134,11 @@ mod tests {
         let p = parse_pattern_str("assets/*/", 1).unwrap();
         assert_eq!(
             p,
-            Unanchored(vec![Dir(DirType::Lit("assets".into())), Dir(DirType::Star)])
+            Unanchored(vec![
+                //Dir(DirType::Lit("assets".into())),
+                Dir(DirType::Component(c("assets"))),
+                Dir(DirType::Star)
+            ])
         );
     }
 
@@ -125,9 +148,11 @@ mod tests {
         assert_eq!(
             p,
             Anchored(vec![
-                Dir(DirType::Lit("assets".into())),
+                //Dir(DirType::Lit("assets".into())),
+                Dir(DirType::Component(c("assets"))),
                 Dir(DirType::DoubleStar),
-                File(FileType::Lit("x".into()))
+                //File(FileType::Lit("x".into()))
+                File(FileType::Component(c("x"))),
             ])
         );
     }
@@ -138,9 +163,11 @@ mod tests {
         assert_eq!(
             p,
             Anchored(vec![
-                Dir(DirType::Lit("assets".into())),
+                //Dir(DirType::Lit("assets".into())),
+                Dir(DirType::Component(c("assets"))),
                 Dir(DirType::DoubleStar),
-                File(FileType::Lit("x".into()))
+                //File(FileType::Lit("x".into()))
+                File(FileType::Component(c("x"))),
             ])
         );
     }
@@ -148,7 +175,7 @@ mod tests {
     #[test]
     fn anchored_dir_with_dot_slash() {
         let p = parse_pattern_str("./bin/", 1).unwrap();
-        assert_eq!(p, Anchored(vec![Dir(DirType::Lit("bin".into()))]));
+        assert_eq!(p, Anchored(vec![Dir(DirType::Component(c("bin")))]));
     }
 
     #[test]
@@ -162,9 +189,12 @@ mod tests {
         assert_eq!(
             p,
             Anchored(vec![
-                Dir(DirType::Lit("assets".into())),
-                Dir(DirType::Lit("this dir has spaces ".into())),
-                File(FileType::Lit("x".into()))
+                //Dir(DirType::Lit("assets".into())),
+                Dir(DirType::Component(c("assets"))),
+                //Dir(DirType::Lit("this dir has spaces ".into())),
+                Dir(DirType::Component(c("this dir has spaces "))),
+                //File(FileType::Lit("x".into()))
+                File(FileType::Component(c("x"))),
             ])
         );
     }
@@ -175,9 +205,9 @@ mod tests {
         assert_eq!(
             p,
             Anchored(vec![
-                Dir(DirType::Lit("assets".into())),
-                Dir(DirType::Lit("approved".into())),
-                File(FileType::Lit("My mom named this file.png".into()))
+                Dir(DirType::Component(c("assets"))),
+                Dir(DirType::Component(c("approved"))),
+                File(FileType::Component(c("My mom named this file.png"))),
             ])
         );
     }

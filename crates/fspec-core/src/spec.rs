@@ -1,3 +1,5 @@
+use fspec_placeholder::ComponentAst;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RuleKind {
     Allow,
@@ -25,13 +27,13 @@ pub enum FSEntry {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DirType {
-    Lit(String),
+    Component(ComponentAst),
     Star,
     DoubleStar,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum FileType {
-    Lit(String),
+    Component(ComponentAst),
     Star,
 }
