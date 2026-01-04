@@ -1,11 +1,27 @@
+use std::collections::HashMap;
 use std::path::Path;
 
 use crate::spec::{DirType, FSEntry, FSPattern, FileType, Rule, RuleKind};
 use fspec_placeholder::ast::{Choice, ComponentAst, LimiterArg, Part, PlaceholderNode};
 use regex::Regex;
 
+/// Result of matching a component AST against a string
+#[derive(Debug)]
+struct ComponentMatch {
+    /// Whether the component matched
+    matched: bool,
+    /// Extracted placeholder values (name -> value)
+    placeholders: HashMap<String, String>,
+}
+
 fn matches_component_ast(ast: &ComponentAst, actual: &str) -> bool {
+    extract_component_values(ast, actual).matched
+}
+
+fn extract_component_values(ast: &ComponentAst, actual: &str) -> ComponentMatch {
     let mut pat = String::from("^");
+    let mut placeholder_indices: Vec<(String, usize)> = Vec::new(); // name -> capture group index
+    let mut capture_group = 1;
 
     for part in &ast.parts {
         match part {
@@ -13,29 +29,49 @@ fn matches_component_ast(ast: &ComponentAst, actual: &str) -> bool {
             Part::Star(_) => pat.push_str(".*"),
             Part::Placeholder(ph) => match &ph.node {
                 PlaceholderNode::OneOf(oneof) => {
-                    let mut alts: Vec<String> = Vec::new();
-                    for choice in &oneof.choices {
-                        let s = match choice {
-                            Choice::Ident { value, .. } => value,
-                            Choice::Str { value, .. } => value,
-                        };
-                        alts.push(regex::escape(s));
+                    // Named one-of: extract the matched choice
+                    if let Some(named) = &oneof.name {
+                        let mut alts: Vec<String> = Vec::new();
+                        for choice in &oneof.choices {
+                            let s = match choice {
+                                Choice::Ident { value, .. } => value,
+                                Choice::Str { value, .. } => value,
+                            };
+                            alts.push(regex::escape(s));
+                        }
+                        pat.push_str("("); // capture group for named one-of
+                        pat.push_str(&alts.join("|"));
+                        pat.push(')');
+                        placeholder_indices.push((named.name.clone(), capture_group));
+                        capture_group += 1;
+                    } else {
+                        // Unnamed one-of: no capture
+                        let mut alts: Vec<String> = Vec::new();
+                        for choice in &oneof.choices {
+                            let s = match choice {
+                                Choice::Ident { value, .. } => value,
+                                Choice::Str { value, .. } => value,
+                            };
+                            alts.push(regex::escape(s));
+                        }
+                        pat.push_str("(?:");
+                        pat.push_str(&alts.join("|"));
+                        pat.push(')');
                     }
-                    pat.push_str("(?:");
-                    pat.push_str(&alts.join("|"));
-                    pat.push(')');
                 }
                 PlaceholderNode::Capture(cap) => {
-                    // default capture: non-empty
+                    // Capture with name: extract the matched value
                     let mut cap_re = String::from(".+");
 
                     if let Some(lim) = &cap.limiter {
                         cap_re = limiter_to_regex(lim.name.as_str(), &lim.args);
                     }
 
-                    pat.push_str("(?:");
+                    pat.push_str("("); // capture group for named capture
                     pat.push_str(&cap_re);
                     pat.push(')');
+                    placeholder_indices.push((cap.name.clone(), capture_group));
+                    capture_group += 1;
                 }
             },
         }
@@ -45,9 +81,33 @@ fn matches_component_ast(ast: &ComponentAst, actual: &str) -> bool {
 
     // If limiter_to_regex yields invalid regex (e.g. user gave a bad re("...")),
     // treat as non-match rather than panic.
-    Regex::new(&pat)
-        .map(|re| re.is_match(actual))
-        .unwrap_or(false)
+    let re = match Regex::new(&pat) {
+        Ok(r) => r,
+        Err(_) => {
+            return ComponentMatch {
+                matched: false,
+                placeholders: HashMap::new(),
+            };
+        }
+    };
+
+    if let Some(caps) = re.captures(actual) {
+        let mut placeholders = HashMap::new();
+        for (name, idx) in placeholder_indices {
+            if let Some(mat) = caps.get(idx) {
+                placeholders.insert(name, mat.as_str().to_string());
+            }
+        }
+        ComponentMatch {
+            matched: true,
+            placeholders,
+        }
+    } else {
+        ComponentMatch {
+            matched: false,
+            placeholders: HashMap::new(),
+        }
+    }
 }
 
 fn limiter_to_regex(name: &str, args: &[LimiterArg]) -> String {
@@ -88,7 +148,7 @@ fn limiter_to_regex(name: &str, args: &[LimiterArg]) -> String {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq)]
 enum Terminal {
     File,
     Dir,
@@ -198,7 +258,157 @@ fn matches_anchored_literal(rule: &Rule, path: &Path, kind: RuleKind, terminal: 
     // Dimensions: (parts.len()+1) x (path_parts.len()+1)
     let mut memo: Vec<Vec<Option<bool>>> = vec![vec![None; path_parts.len() + 1]; parts.len() + 1];
 
-    dp(0, 0, parts, &path_parts, terminal, &mut memo)
+    // Phase 1: Check if pattern matches (existing logic)
+    if !dp(0, 0, parts, &path_parts, terminal, &mut memo) {
+        return false;
+    }
+
+    // Phase 2: Extract placeholder values and validate same-name constraints
+    validate_placeholder_consistency(parts, &path_parts, terminal)
+}
+
+/// Extract placeholder values from a matched pattern and validate same-name consistency
+fn validate_placeholder_consistency(
+    parts: &[FSEntry],
+    path_parts: &[std::borrow::Cow<'_, str>],
+    terminal: Terminal,
+) -> bool {
+    // Extract all placeholder values by matching components
+    let mut all_placeholders: HashMap<String, Vec<String>> = HashMap::new(); // name -> list of values
+
+    extract_placeholders_recursive(parts, path_parts, 0, 0, terminal, &mut all_placeholders);
+
+    // Validate: all placeholders with the same name must have the same value
+    for (_name, values) in all_placeholders {
+        if values.len() > 1 {
+            // All values must be the same
+            let first = &values[0];
+            for value in values.iter().skip(1) {
+                if value != first {
+                    return false;
+                }
+            }
+        }
+    }
+
+    true
+}
+
+/// Recursively extract placeholder values by matching pattern parts to path segments
+fn extract_placeholders_recursive(
+    parts: &[FSEntry],
+    path_parts: &[std::borrow::Cow<'_, str>],
+    pat_idx: usize,
+    path_idx: usize,
+    terminal: Terminal,
+    placeholders: &mut HashMap<String, Vec<String>>,
+) -> bool {
+    if pat_idx >= parts.len() {
+        return path_idx >= path_parts.len();
+    }
+
+    if path_idx >= path_parts.len() {
+        return false;
+    }
+
+    let is_last = pat_idx + 1 == parts.len();
+
+    match &parts[pat_idx] {
+        FSEntry::Dir(DirType::DoubleStar) => {
+            if is_last {
+                // ** at end - doesn't match anything in anchored mode
+                return false;
+            }
+            // ** can consume zero or more segments
+            // Try zero segments first
+            if extract_placeholders_recursive(
+                parts,
+                path_parts,
+                pat_idx + 1,
+                path_idx,
+                terminal,
+                placeholders,
+            ) {
+                return true;
+            }
+            // Try consuming one segment
+            if extract_placeholders_recursive(
+                parts,
+                path_parts,
+                pat_idx,
+                path_idx + 1,
+                terminal,
+                placeholders,
+            ) {
+                return true;
+            }
+            false
+        }
+        FSEntry::Dir(DirType::Component(component)) => {
+            if !is_last {
+                let match_result = extract_component_values(component, &path_parts[path_idx]);
+                if match_result.matched {
+                    for (name, value) in match_result.placeholders {
+                        placeholders
+                            .entry(name)
+                            .or_insert_with(Vec::new)
+                            .push(value);
+                    }
+                    extract_placeholders_recursive(
+                        parts,
+                        path_parts,
+                        pat_idx + 1,
+                        path_idx + 1,
+                        terminal,
+                        placeholders,
+                    )
+                } else {
+                    false
+                }
+            } else {
+                false // Directory component can't be last
+            }
+        }
+        FSEntry::Dir(DirType::Star) => {
+            if !is_last {
+                extract_placeholders_recursive(
+                    parts,
+                    path_parts,
+                    pat_idx + 1,
+                    path_idx + 1,
+                    terminal,
+                    placeholders,
+                )
+            } else {
+                false
+            }
+        }
+        FSEntry::File(FileType::Component(component)) => {
+            if is_last && terminal == Terminal::File {
+                let match_result = extract_component_values(component, &path_parts[path_idx]);
+                if match_result.matched {
+                    for (name, value) in match_result.placeholders {
+                        placeholders
+                            .entry(name)
+                            .or_insert_with(Vec::new)
+                            .push(value);
+                    }
+                    path_idx + 1 == path_parts.len()
+                } else {
+                    false
+                }
+            } else {
+                false
+            }
+        }
+        FSEntry::File(FileType::Star) => {
+            if is_last && terminal == Terminal::File {
+                path_idx + 1 == path_parts.len()
+            } else {
+                false
+            }
+        }
+    }
 }
 
 fn matches_unanchored_literal(
@@ -241,7 +451,13 @@ fn matches_unanchored_literal(
     let mut memo: Vec<Vec<Option<bool>>> =
         vec![vec![None; path_parts.len() + 1]; effective_parts.len() + 1];
 
-    dp(0, 0, &effective_parts, &path_parts, terminal, &mut memo)
+    // Phase 1: Check if pattern matches
+    if !dp(0, 0, &effective_parts, &path_parts, terminal, &mut memo) {
+        return false;
+    }
+
+    // Phase 2: Extract placeholder values and validate same-name constraints
+    validate_placeholder_consistency(&effective_parts, &path_parts, terminal)
 }
 
 pub(crate) fn matches_allowed_anchored_file(rule: &Rule, path: &Path) -> bool {

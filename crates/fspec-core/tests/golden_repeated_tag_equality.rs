@@ -10,7 +10,6 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-#[ignore = "enable when named path elements are checked for equality etc."]
 #[test]
 fn golden_repeated_tag_equality() {
     let tmp = tempfile::tempdir().unwrap();

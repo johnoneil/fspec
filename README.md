@@ -35,12 +35,12 @@ This is especially useful for:
 
 ```fspec
 # movies
-allow /movies/{year:int(4)}/{snake_case}_{year}.{ext:mp4|mkv}
-allow /movies/unsorted/**/*.{ext:mp4|mkv}
+allow /movies/{year:int(4)}/{snake_case}_{year}.{mp4|mkv}
+allow /movies/unsorted/**/*.{mp4|mkv}
 
 # series
-allow /series/{year:int(4)}/{name:PascalCase}/season_{season:int(2+)}/{name}.s{season}e{episode:int(2+)}.{ext:mp4|mkv}
-allow /series/unsorted/**/*.{ext:mp4|mkv}
+allow /series/{year:int(4)}/{name:PascalCase}/season_{season:int(2+)}/{name}.s{season}e{episode:int(2+)}.{mp4|mkv}
+allow /series/unsorted/**/*.{mp4|mkv}
 
 # artwork
 allow /movies/**/{snake_case}_{year}_thumbnail.png
@@ -57,19 +57,20 @@ This allows structured organization and transitional “unsorted” areas and is
 `fspec` can also be used to enforce file structure and naming in code repositories, though that is not its focus.
 
 ```fspec
-# ignore build artifacts at root.
-# if artifacts are polluting crates, it will be reported.
-ignore /target/
+# ignore build artifacts at root only.
+# if different artifacts are polluting crates, it will be reported.
+ignore ./target/
 
 # root workspace files
 # we allow a Cargo.lock at workspace root and nowhere else.
-allow /Cargo.toml
-allow /Cargo.lock
+allow ./Cargo.toml
+allow ./Cargo.lock
 
 # crates.
-# kebab-case crate naming and snake_case source files.
-allow /crates/{crate:kebab-case}/Cargo.toml
-allow /crates/{crate:kebab-case}/{src|tests|examples}/**/{snake_case}.rs
+# kebab-case crate naming
+allow ./crates/{crate:kebab-case}/Cargo.toml
+# snake_case naming of source files under certain trees.
+allow ./crates/{crate:kebab-case}/{src|tests|examples}/**/{snake_case}.rs
 ```
 
 Anything not matching these rules will be reported.
@@ -136,9 +137,12 @@ allow /src/main.rs
 * FSPatterns without a leading `./` or `/` are **unanchored** and may match anywhere.
 
 ```fspec
-./bin # only matches ./bin
-/bin  # only matches ./bin
-bin # matches bin at any depth
+# only matches ./bin
+./bin
+ # only matches ./bin
+/bin
+ # matches bin at any depth
+bin
 ```
 
 ### 3. Ignore rules
@@ -147,10 +151,14 @@ bin # matches bin at any depth
 * A trailing `/` means *directory-only*
 
 ```fspec
-ignore ./bin/    # ignore a *directory* named "bin" at fspec root (anchored).
-ignore ./bin     # ignore a file named "bin" at fspec root (anchored)
-ignore bin/     # ignore a directory named "bin" anywhere.
-ignore bin      # ignore a *file* named "bin" anywhere.
+# ignore a *directory* named "bin" at fspec root (anchored).
+ignore ./bin/
+# ignore a file named "bin" at fspec root (anchored)
+ignore ./bin
+# ignore a directory named "bin" anywhere.
+ignore bin/
+# ignore a *file* named "bin" anywhere.
+ignore bin
 ```
 ### 4. Order matters
 
@@ -267,9 +275,9 @@ fspec is intentionally staged. Not all features need to exist at once.
 
 - [x] placeholder capture and parsing.
 - [x] Initial group of limiters parsed and provided to clients as part of an AST.
-- [ ] Improve allowed comments in the grammar and impl. Allow `#` anywhere.
-- [ ] repeated placeholder equality (`year` = `year`)
-- [ ] Improve union limiter to allow names like `ext` in `{ext:mp4|mkv}`
+- [ ] ~~Improve allowed comments in the grammar and impl. Allow `#` anywhere.~~
+- [x] repeated placeholder equality (`year` = `year`)
+- [x] Improve union limiter to allow names like `ext` in `{ext:mp4|mkv}`
 - [ ] Implement `./file` as either a file or directory to match `fined` and `.gitignore` behavior. Ensure behavior is switchable (between "file only" and "file or directory" to allow later strictness switches.)
 - [ ] Introduce a command line tool wrapper crate.
 - [ ] Make the basic rule engine usable in real world cases.
