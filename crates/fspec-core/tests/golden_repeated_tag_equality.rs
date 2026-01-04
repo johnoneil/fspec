@@ -10,12 +10,13 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-#[ignore = "reenable when we support tags"]
+#[ignore = "enable when named path elements are checked for equality etc."]
 #[test]
 fn golden_repeated_tag_equality() {
     let tmp = tempfile::tempdir().unwrap();
     let root = tmp.path();
 
+    // TODO: support named "option list" like {ext:mp4|mkv}
     write_file(
         &root.join(".fspec"),
         r#"

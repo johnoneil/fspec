@@ -1,6 +1,92 @@
 use std::path::Path;
 
 use crate::spec::{DirType, FSEntry, FSPattern, FileType, Rule, RuleKind};
+use fspec_placeholder::ast::{Choice, ComponentAst, LimiterArg, Part, PlaceholderNode};
+use regex::Regex;
+
+fn matches_component_ast(ast: &ComponentAst, actual: &str) -> bool {
+    let mut pat = String::from("^");
+
+    for part in &ast.parts {
+        match part {
+            Part::Literal(lit) => pat.push_str(&regex::escape(&lit.value)),
+            Part::Star(_) => pat.push_str(".*"),
+            Part::Placeholder(ph) => match &ph.node {
+                PlaceholderNode::OneOf(oneof) => {
+                    let mut alts: Vec<String> = Vec::new();
+                    for choice in &oneof.choices {
+                        let s = match choice {
+                            Choice::Ident { value, .. } => value,
+                            Choice::Str { value, .. } => value,
+                        };
+                        alts.push(regex::escape(s));
+                    }
+                    pat.push_str("(?:");
+                    pat.push_str(&alts.join("|"));
+                    pat.push(')');
+                }
+                PlaceholderNode::Capture(cap) => {
+                    // default capture: non-empty
+                    let mut cap_re = String::from(".+");
+
+                    if let Some(lim) = &cap.limiter {
+                        cap_re = limiter_to_regex(lim.name.as_str(), &lim.args);
+                    }
+
+                    pat.push_str("(?:");
+                    pat.push_str(&cap_re);
+                    pat.push(')');
+                }
+            },
+        }
+    }
+
+    pat.push('$');
+
+    // If limiter_to_regex yields invalid regex (e.g. user gave a bad re("...")),
+    // treat as non-match rather than panic.
+    Regex::new(&pat)
+        .map(|re| re.is_match(actual))
+        .unwrap_or(false)
+}
+
+fn limiter_to_regex(name: &str, args: &[LimiterArg]) -> String {
+    match name {
+        // ASCII case/style
+        "snake_case" => r"[a-z0-9]+(?:_[a-z0-9]+)*".to_string(),
+        "kebab_case" => r"[a-z0-9]+(?:-[a-z0-9]+)*".to_string(),
+        "pascal_case" => r"[A-Z][a-z0-9]*(?:[A-Z][a-z0-9]*)*".to_string(),
+        "upper_case" => r"[A-Z0-9]+".to_string(),
+        "lower_case" => r"[a-z0-9]+".to_string(),
+
+        // int(n): exactly n digits
+        "int" => {
+            if let Some(LimiterArg::Number { value, .. }) = args.get(0) {
+                if let Ok(n) = value.parse::<usize>() {
+                    return format!(r"[0-9]{{{}}}", n);
+                }
+            }
+            // fallback: invalid args -> non-empty
+            ".+".to_string()
+        }
+
+        // re("..."): user regex
+        "re" => {
+            if let Some(LimiterArg::Str { value, .. }) = args.get(0) {
+                return format!(r"(?:{})", value);
+            }
+            ".+".to_string()
+        }
+
+        // Unicode-ish buckets (regex crate supports \p{..})
+        "letters" => r"\p{L}+".to_string(),
+        "numbers" => r"\p{Nd}+".to_string(),
+        "alnum" => r"(?:\p{L}|\p{Nd})+".to_string(),
+
+        // Unknown limiter for now: accept non-empty
+        _ => ".+".to_string(),
+    }
+}
 
 #[derive(Clone, Copy)]
 enum Terminal {
@@ -8,26 +94,27 @@ enum Terminal {
     Dir,
 }
 
-fn matches_terminal_pat(terminal: Terminal, pat: &FSEntry, _actual: &str) -> bool {
+fn matches_terminal_pat(terminal: Terminal, pat: &FSEntry, actual: &str) -> bool {
     match (terminal, pat) {
-        (Terminal::File, FSEntry::File(FileType::Component(_component))) => true,
+        (Terminal::File, FSEntry::File(FileType::Component(component))) => {
+            matches_component_ast(component, actual)
+        }
         (Terminal::File, FSEntry::File(FileType::Star)) => true,
 
-        (Terminal::Dir, FSEntry::Dir(DirType::Component(_component))) => true,
+        (Terminal::Dir, FSEntry::Dir(DirType::Component(component))) => {
+            matches_component_ast(component, actual)
+        }
         (Terminal::Dir, FSEntry::Dir(DirType::Star)) => true,
-        // NOTE: DoubleStar is handled in DP; it is not a valid "single dir name" terminal.
         (Terminal::Dir, FSEntry::Dir(DirType::DoubleStar)) => false,
 
         _ => false,
     }
 }
 
-fn matches_dir_pat(pat: &FSEntry, _actual: &str) -> bool {
+fn matches_dir_pat(pat: &FSEntry, actual: &str) -> bool {
     match pat {
-        //FSEntry::Dir(DirType::Lit(lit)) => lit == actual,
-        FSEntry::Dir(DirType::Component(_component)) => true,
+        FSEntry::Dir(DirType::Component(component)) => matches_component_ast(component, actual),
         FSEntry::Dir(DirType::Star) => true,
-        // NOTE: DoubleStar is handled in the DP transitions, not as a single-step match.
         FSEntry::Dir(DirType::DoubleStar) => false,
         _ => false,
     }

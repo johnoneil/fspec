@@ -28,11 +28,28 @@ impl From<std::io::Error> for Error {
 
 impl From<ParseError> for Error {
     fn from(e: ParseError) -> Self {
-        Error::Parse {
-            line: e.at,
-            col: e.at,
-            msg: e.message,
-        }
+        // In component strings we don't expect newlines, so treat offset as "column".
+        let line = 1;
+        let col = e.at.saturating_add(1);
+
+        let span_str = e
+            .span
+            .as_ref()
+            .map(|s| format!("{}..{}", s.start, s.end))
+            .unwrap_or_else(|| "none".to_string());
+
+        let tok_str = e
+            .source_tokenize
+            .as_ref()
+            .map(|s| format!(", tokenize={}", s))
+            .unwrap_or_default();
+
+        let msg = format!(
+            "{} (kind={:?}, at={}, span={}{} )",
+            e.message, e.kind, e.at, span_str, tok_str
+        );
+
+        Error::Parse { line, col, msg }
     }
 }
 

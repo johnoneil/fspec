@@ -15,7 +15,6 @@ fn create_dir(path: &Path) {
     assert!(path.is_dir());
 }
 
-#[ignore = "enable when placeholder literals implemented."]
 #[test]
 fn golden_basic_unaccounted_dir() {
     let tmp = tempfile::tempdir().unwrap();

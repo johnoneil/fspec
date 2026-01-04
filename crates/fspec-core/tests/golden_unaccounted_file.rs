@@ -10,7 +10,6 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
-#[ignore = "enable when placeholder literals implemented."]
 #[test]
 fn golden_basic_unaccounted_file() {
     let tmp = tempfile::tempdir().unwrap();
