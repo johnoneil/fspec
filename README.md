@@ -219,15 +219,12 @@ Common built-in limiters. These ensure path or file segments match certain patte
 * `PascalCase`
 * `kebab-case`
 * `int(n)` (exact width)
-* `int(n+)` (at least n digits)
-* `int(n,m)` (range of integer values)
 
 Examples:
 
 ```fspec
 {snake_case}.rs
 {year:int(4)}
-season_{season:int(2+)}
 ```
 
 ### Repeated placeholders
@@ -281,13 +278,15 @@ fspec is intentionally staged. Not all features need to exist at once.
 - [ ] Implement `./file` as either a file or directory to match `fined` and `.gitignore` behavior. Ensure behavior is switchable (between "file only" and "file or directory" to allow later strictness switches.)
 - [ ] Introduce a command line tool wrapper crate.
 - [ ] Make the basic rule engine usable in real world cases.
+- [ ] Command line tool output switches and JSON report output.
 
-## Level 2 — Diagnostics
+## Level 2 — Diagnostics and Expansion
 
 - [ ] explain which rule matched
 - [ ] ambiguity detection and warnings
 - [ ] warn on re-allowed ignored paths
 - [ ] warn on ambiguous matches
+- [ ] expand limiter list to a more ergonomic set including GUID, Date, URL, etc.
 
 ## Level 3 — Suggestions
 
@@ -300,7 +299,6 @@ fspec is intentionally staged. Not all features need to exist at once.
 - [ ] hierarchical `.fspec` inheritance
 - [ ] dependency / freshness rules
 - [ ] documentation and tooling generation
-- [ ] allow "permissive" or less strict mode as default where lack of trailing slash `xxx/` can be interpreted as either a file or directory like gitignore et al.
 ---
 
 ## Philosophy
