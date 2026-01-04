@@ -68,17 +68,20 @@ This component is: quoted literal `***filename_literal***` + literal run `.o`.
 ```ebnf
 placeholder      := "{" WS* placeholder_body WS* "}"
 
-placeholder_body := oneof
+placeholder_body := named_oneof
+                  | oneof
                   | capture_or_ref
 
 capture_or_ref   := IDENT (WS* ":" WS* limiter_spec)?
-                 // (if you already had `{year}` meaning “reference year” vs capture,
-                 // keep that semantic rule at a higher layer; grammar-wise it’s IDENT.)
+                 // (if you already had `{year}` meaning "reference year" vs capture,
+                 // keep that semantic rule at a higher layer; grammar-wise it's IDENT.)
 ```
 
 ### 3.1 One-of placeholder
 
 ```ebnf
+named_oneof      := IDENT WS* ":" WS* oneof
+
 oneof            := choice (WS* "|" WS* choice)+
 
 choice           := IDENT
@@ -90,12 +93,18 @@ quoted_string    := DQUOTE qchar* DQUOTE    // same rules as quoted_literal
 Examples:
 
 ```fspec
+# Unnamed one-of
 allow file.{mp4|mkv}
 allow file.{"mp*4"|"m/v"|"""in quotes"""}
+# Named one-of
+allow file.{ext:mp4|mkv}
+allow file.{type:"video"|"audio"|"text"}
 ```
 
-* `IDENT` choices are “simple tokens”
+* `IDENT` choices are "simple tokens"
 * quoted choices allow any weirdness, with `""` as the quote escape.
+* Named one-of placeholders allow capturing which choice matched (e.g., `{ext:mp4|mkv}` captures `ext` as `mp4` or `mkv`).
+* Note: `{name:single}` (single choice without `|`) is not a one-of; it is parsed as a capture with limiter, and will fail validation if `single` is not a valid limiter name.
 
 ---
 

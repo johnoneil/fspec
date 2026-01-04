@@ -29,7 +29,7 @@ pub struct PlaceholderPart {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlaceholderNode {
-    /// `{a|b|"c"}` (must contain at least one pipe)
+    /// `{a|b|"c"}` (unnamed) or `{name:a|b|"c"}` (named; must contain at least one pipe)
     OneOf(OneOfNode),
 
     /// `{name}` or `{name:lim(...)}`
@@ -39,8 +39,16 @@ pub enum PlaceholderNode {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OneOfNode {
+    /// Name for named one-of (e.g., `ext` in `{ext:mp4|mkv}`), or `None` for unnamed
+    pub name: Option<NamedOneOf>,
     pub choices: Vec<Choice>,
     pub span: Span,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct NamedOneOf {
+    pub name: String,
+    pub name_span: Span,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

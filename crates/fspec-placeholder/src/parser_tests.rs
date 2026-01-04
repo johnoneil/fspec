@@ -720,6 +720,158 @@ mod tests {
         assert_eq!(one.choices.len(), 5);
     }
 
+    // ===== Tests for named one-of placeholders =====
+
+    #[test]
+    fn parse_named_oneof_basic() {
+        let ast = parse_component("{ext:mp4|mkv}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let one = match &p.node {
+            PlaceholderNode::OneOf(o) => o,
+            _ => panic!("expected oneof"),
+        };
+        assert!(one.name.is_some());
+        let name = one.name.as_ref().unwrap();
+        assert_eq!(name.name, "ext");
+        assert_eq!(one.choices.len(), 2);
+        match &one.choices[0] {
+            Choice::Ident { value, .. } => assert_eq!(value, "mp4"),
+            _ => panic!("expected ident choice"),
+        }
+        match &one.choices[1] {
+            Choice::Ident { value, .. } => assert_eq!(value, "mkv"),
+            _ => panic!("expected ident choice"),
+        }
+    }
+
+    #[test]
+    fn parse_named_oneof_with_quoted_choices() {
+        let ast = parse_component(r#"{type:"video"|"audio"|"text"}"#).unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let one = match &p.node {
+            PlaceholderNode::OneOf(o) => o,
+            _ => panic!("expected oneof"),
+        };
+        assert!(one.name.is_some());
+        let name = one.name.as_ref().unwrap();
+        assert_eq!(name.name, "type");
+        assert_eq!(one.choices.len(), 3);
+        match &one.choices[0] {
+            Choice::Str { value, .. } => assert_eq!(value, "video"),
+            _ => panic!("expected str choice"),
+        }
+        match &one.choices[1] {
+            Choice::Str { value, .. } => assert_eq!(value, "audio"),
+            _ => panic!("expected str choice"),
+        }
+        match &one.choices[2] {
+            Choice::Str { value, .. } => assert_eq!(value, "text"),
+            _ => panic!("expected str choice"),
+        }
+    }
+
+    #[test]
+    fn parse_named_oneof_with_mixed_choices() {
+        let ast = parse_component(r#"{format:mp4|"mkv"|avi}"#).unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let one = match &p.node {
+            PlaceholderNode::OneOf(o) => o,
+            _ => panic!("expected oneof"),
+        };
+        assert!(one.name.is_some());
+        assert_eq!(one.name.as_ref().unwrap().name, "format");
+        assert_eq!(one.choices.len(), 3);
+        match &one.choices[0] {
+            Choice::Ident { value, .. } => assert_eq!(value, "mp4"),
+            _ => panic!("expected ident choice"),
+        }
+        match &one.choices[1] {
+            Choice::Str { value, .. } => assert_eq!(value, "mkv"),
+            _ => panic!("expected str choice"),
+        }
+        match &one.choices[2] {
+            Choice::Ident { value, .. } => assert_eq!(value, "avi"),
+            _ => panic!("expected ident choice"),
+        }
+    }
+
+    #[test]
+    fn parse_named_oneof_with_whitespace() {
+        let ast = parse_component("{ ext : mp4 | mkv }").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let one = match &p.node {
+            PlaceholderNode::OneOf(o) => o,
+            _ => panic!("expected oneof"),
+        };
+        assert!(one.name.is_some());
+        assert_eq!(one.name.as_ref().unwrap().name, "ext");
+        assert_eq!(one.choices.len(), 2);
+    }
+
+    #[test]
+    fn parse_named_oneof_many_choices() {
+        let ast = parse_component("{ext:mp4|mkv|avi|mov|wmv}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let one = match &p.node {
+            PlaceholderNode::OneOf(o) => o,
+            _ => panic!("expected oneof"),
+        };
+        assert!(one.name.is_some());
+        assert_eq!(one.name.as_ref().unwrap().name, "ext");
+        assert_eq!(one.choices.len(), 5);
+    }
+
+    #[test]
+    fn parse_named_oneof_requires_pipe() {
+        // {ext:mp4} should NOT be parsed as named one-of (no pipe)
+        // It should be parsed as a capture with limiter, which will fail validation
+        let ast = parse_component("{ext:mp4}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        // Should be a Capture, not OneOf
+        match &p.node {
+            PlaceholderNode::Capture(c) => {
+                assert_eq!(c.name, "ext");
+                assert!(c.limiter.is_some());
+                assert_eq!(c.limiter.as_ref().unwrap().name, "mp4");
+            }
+            PlaceholderNode::OneOf(_) => panic!("should not be parsed as oneof (no pipe)"),
+        }
+    }
+
+    #[test]
+    fn parse_unnamed_oneof_has_no_name() {
+        // Unnamed one-of should have name: None
+        let ast = parse_component("{mp4|mkv}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let one = match &p.node {
+            PlaceholderNode::OneOf(o) => o,
+            _ => panic!("expected oneof"),
+        };
+        assert!(one.name.is_none());
+        assert_eq!(one.choices.len(), 2);
+    }
+
     // ===== Tests for valid Level-1 limiter names =====
 
     #[test]
