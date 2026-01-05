@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use fspec_core::{Severity, check_tree};
+use fspec_core::{MatchSettings, check_tree};
 
 fn write_file(path: &Path, contents: &str) {
     if let Some(parent) = path.parent() {
@@ -35,7 +35,7 @@ allow /movies/{year:int(4)}/{tag:snake_case}_{year}.{ext:mp4|mkv}
         "video",
     );
 
-    let report = check_tree(root, Severity::Error).unwrap();
+    let report = check_tree(root, &MatchSettings::default()).unwrap();
 
     assert!(report.is_allowed("movies/1946/its_a_wonderful_life_1946.mp4"));
     assert!(report.is_unaccounted("movies/1946/its_a_wonderful_life_1947.mp4"));

@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use fspec_core::{Severity, check_tree};
+use fspec_core::{MatchSettings, check_tree};
 
 fn write_file(path: &Path, contents: &str) {
     if let Some(parent) = path.parent() {
@@ -29,7 +29,7 @@ allow subdir/*/main.rs
         "pub fn more() {}\n",
     ); // should NOT match: too deep
 
-    let report = check_tree(root, Severity::Error).unwrap();
+    let report = check_tree(root, &MatchSettings::default()).unwrap();
 
     assert!(report.is_allowed("name/subdir/src/main.rs"));
     assert!(report.is_allowed("name/subdir/src"));

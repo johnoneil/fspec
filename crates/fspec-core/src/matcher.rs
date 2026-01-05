@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::spec::{DirType, FSEntry, FSPattern, FileType, Rule, RuleKind};
+use crate::spec::{DirType, FSEntry, FSPattern, FileOrDirType, FileType, Rule, RuleKind};
 use fspec_placeholder::ast::{Choice, ComponentAst, LimiterArg, Part, PlaceholderNode};
 use regex::Regex;
 
@@ -39,7 +39,7 @@ fn extract_component_values(ast: &ComponentAst, actual: &str) -> ComponentMatch 
                             };
                             alts.push(regex::escape(s));
                         }
-                        pat.push_str("("); // capture group for named one-of
+                        pat.push('('); // capture group for named one-of
                         pat.push_str(&alts.join("|"));
                         pat.push(')');
                         placeholder_indices.push((named.name.clone(), capture_group));
@@ -67,7 +67,7 @@ fn extract_component_values(ast: &ComponentAst, actual: &str) -> ComponentMatch 
                         cap_re = limiter_to_regex(lim.name.as_str(), &lim.args);
                     }
 
-                    pat.push_str("("); // capture group for named capture
+                    pat.push('('); // capture group for named capture
                     pat.push_str(&cap_re);
                     pat.push(')');
                     placeholder_indices.push((cap.name.clone(), capture_group));
@@ -156,15 +156,23 @@ enum Terminal {
 
 fn matches_terminal_pat(terminal: Terminal, pat: &FSEntry, actual: &str) -> bool {
     match (terminal, pat) {
-        (Terminal::File, FSEntry::File(FileType::Component(component))) => {
-            matches_component_ast(component, actual)
+        // FILE
+        (Terminal::File, FSEntry::File(FileType::Component(c)))
+        | (Terminal::File, FSEntry::Either(FileOrDirType::Component(c))) => {
+            matches_component_ast(c, actual)
         }
-        (Terminal::File, FSEntry::File(FileType::Star)) => true,
+        (Terminal::File, FSEntry::File(FileType::Star))
+        | (Terminal::File, FSEntry::Either(FileOrDirType::Star)) => true,
 
-        (Terminal::Dir, FSEntry::Dir(DirType::Component(component))) => {
-            matches_component_ast(component, actual)
+        // DIR
+        (Terminal::Dir, FSEntry::Dir(DirType::Component(c)))
+        | (Terminal::Dir, FSEntry::Either(FileOrDirType::Component(c))) => {
+            matches_component_ast(c, actual)
         }
-        (Terminal::Dir, FSEntry::Dir(DirType::Star)) => true,
+        (Terminal::Dir, FSEntry::Dir(DirType::Star))
+        | (Terminal::Dir, FSEntry::Either(FileOrDirType::Star)) => true,
+
+        // Explicitly forbidden
         (Terminal::Dir, FSEntry::Dir(DirType::DoubleStar)) => false,
 
         _ => false,
@@ -406,6 +414,77 @@ fn extract_placeholders_recursive(
                 path_idx + 1 == path_parts.len()
             } else {
                 false
+            }
+        }
+        FSEntry::Either(either) => {
+            match terminal {
+                Terminal::File => {
+                    // Treat as File
+                    match either {
+                        FileOrDirType::Component(component) => {
+                            if is_last {
+                                let match_result =
+                                    extract_component_values(component, &path_parts[path_idx]);
+                                if match_result.matched {
+                                    for (name, value) in match_result.placeholders {
+                                        placeholders
+                                            .entry(name)
+                                            .or_insert_with(Vec::new)
+                                            .push(value);
+                                    }
+                                    path_idx + 1 == path_parts.len()
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        }
+                        FileOrDirType::Star => is_last && path_idx + 1 == path_parts.len(),
+                    }
+                }
+                Terminal::Dir => {
+                    // Treat as Dir
+                    match either {
+                        FileOrDirType::Component(component) => {
+                            if !is_last {
+                                let match_result =
+                                    extract_component_values(component, &path_parts[path_idx]);
+                                if match_result.matched {
+                                    for (name, value) in match_result.placeholders {
+                                        placeholders
+                                            .entry(name)
+                                            .or_insert_with(Vec::new)
+                                            .push(value);
+                                    }
+                                    extract_placeholders_recursive(
+                                        parts,
+                                        path_parts,
+                                        pat_idx + 1,
+                                        path_idx + 1,
+                                        terminal,
+                                        placeholders,
+                                    )
+                                } else {
+                                    false
+                                }
+                            } else {
+                                false
+                            }
+                        }
+                        FileOrDirType::Star => {
+                            !is_last
+                                && extract_placeholders_recursive(
+                                    parts,
+                                    path_parts,
+                                    pat_idx + 1,
+                                    path_idx + 1,
+                                    terminal,
+                                    placeholders,
+                                )
+                        }
+                    }
+                }
             }
         }
     }

@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use fspec_core::{Severity, check_tree};
+use fspec_core::{MatchSettings, check_tree};
 
 fn write_file(path: &Path, contents: &str) {
     if let Some(parent) = path.parent() {
@@ -29,11 +29,11 @@ allow file.txt
     write_file(&root.join("e/f/g/other.txt"), "nope");
     write_file(&root.join("x/y/file.txt"), "dummy-file");
 
-    let report = check_tree(root, Severity::Error).unwrap();
+    let report = check_tree(root, &MatchSettings::default()).unwrap();
 
     // Unanchored allow should still work inside an ignored subtree, *unless* overridden later.
     assert!(report.is_allowed("e/f/g/file.txt")); // last rule wins
-    assert!(report.is_unaccounted("e/f/g/other.txt")); // optional sanity: it's ignored via /e
+    assert!(report.is_ignored("e/f/g/other.txt")); // optional sanity: it's ignored via /e
 
     // Outside that subtree, unanchored allow should allow file.txt and promote parents.
     assert!(report.is_allowed("x/y/file.txt"));

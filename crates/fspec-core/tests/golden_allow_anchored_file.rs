@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use fspec_core::{Severity, check_tree};
+use fspec_core::{MatchSettings, check_tree};
 
 fn write_file(path: &Path, contents: &str) {
     if let Some(parent) = path.parent() {
@@ -30,7 +30,7 @@ allow /all/ancestors/are/also.allowed.txt
     );
     write_file(&root.join("unaccounted.txt"), "dummy_file");
 
-    let report = check_tree(root, Severity::Error).unwrap();
+    let report = check_tree(root, &MatchSettings::default()).unwrap();
 
     assert!(report.is_allowed("/allowed.txt"));
 

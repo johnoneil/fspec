@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use fspec_core::{Severity, check_tree};
+use fspec_core::{MatchSettings, check_tree};
 
 fn write_file(path: &Path, contents: &str) {
     if let Some(parent) = path.parent() {
@@ -26,7 +26,7 @@ allow src/**/file.txt
     write_file(&root.join("src/file.txt"), "dummy_file");
     write_file(&root.join("nested/deep/src/utils/file.txt"), "dummy_file");
 
-    let report = check_tree(root, Severity::Error).unwrap();
+    let report = check_tree(root, &MatchSettings::default()).unwrap();
 
     assert!(report.is_allowed("src/file.txt"));
     assert!(report.is_allowed("nested/deep/src/utils/file.txt"));

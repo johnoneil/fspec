@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use fspec_core::{Severity, check_tree};
+use fspec_core::{MatchSettings, check_tree};
 
 fn write_file(path: &Path, contents: &str) {
     if let Some(parent) = path.parent() {
@@ -31,7 +31,7 @@ allow Cargo.toml
         "[package]\nname = \"a\"\n",
     );
 
-    let report = check_tree(root, Severity::Error).unwrap();
+    let report = check_tree(root, &MatchSettings::default()).unwrap();
 
     assert!(report.is_allowed("Cargo.toml"));
     assert!(report.is_allowed("crates/a/Cargo.toml"));

@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use fspec_core::{Severity, check_tree};
+use fspec_core::{MatchSettings, check_tree};
 
 fn write_file(path: &Path, contents: &str) {
     if let Some(parent) = path.parent() {
@@ -36,7 +36,7 @@ allow /src/**/{tag:snake_case}.rs
         "pub fn my_function() {}\n",
     );
 
-    let report = check_tree(root, Severity::Error).unwrap();
+    let report = check_tree(root, &MatchSettings::default()).unwrap();
 
     assert!(report.is_allowed("src/main.rs"));
     assert!(report.is_allowed("src/utils/helpers.rs"));

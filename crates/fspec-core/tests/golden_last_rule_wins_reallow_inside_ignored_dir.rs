@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use fspec_core::{Severity, check_tree};
+use fspec_core::{MatchSettings, check_tree};
 
 fn write_file(path: &Path, contents: &str) {
     if let Some(parent) = path.parent() {
@@ -28,7 +28,7 @@ allow /a/b/c/file.txt
     write_file(&root.join("a/b/c/file.txt"), "dummy-file");
     write_file(&root.join("a/other.txt"), "nope");
 
-    let report = check_tree(root, Severity::Error).unwrap();
+    let report = check_tree(root, &MatchSettings::default()).unwrap();
 
     // The re-allowed file must be allowed even though /a is ignored.
     assert!(report.is_allowed("a/b/c/file.txt"));

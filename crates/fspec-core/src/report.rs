@@ -1,7 +1,6 @@
-use std::collections::BTreeMap;
-
-use crate::Severity;
+use crate::spec::Severity;
 use crate::walk::WalkOutput;
+use std::collections::BTreeMap;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Status {

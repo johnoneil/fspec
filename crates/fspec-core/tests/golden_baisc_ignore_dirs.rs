@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use fspec_core::{Severity, check_tree};
+use fspec_core::{MatchSettings, check_tree};
 
 fn write_file(path: &Path, contents: &str) {
     if let Some(parent) = path.parent() {
@@ -43,7 +43,7 @@ ignore also.ignored/
     create_dir(&root.join("not_ignored"));
     create_dir(&root.join("m/n/o/p/not.ignored"));
 
-    let report = check_tree(root, Severity::Error).unwrap();
+    let report = check_tree(root, &MatchSettings::default()).unwrap();
 
     assert!(report.is_ignored("ignored"));
     assert!(report.is_ignored("also_ignored"));

@@ -1,10 +1,13 @@
+use crate::MatchSettings;
 use crate::error::Error;
-use crate::spec::{DirType, FSEntry, FSPattern, FileType};
-//use fspec_placeholder::ast::*;
-use fspec_placeholder::ast::*;
+use crate::spec::{DirType, FSEntry, FSPattern, FileOrDirType, FileType};
 use fspec_placeholder::parse_component;
 
-pub(crate) fn parse_pattern_str(raw: &str, line: usize) -> Result<FSPattern, Error> {
+pub(crate) fn parse_pattern_str(
+    raw: &str,
+    line: usize,
+    settings: &MatchSettings,
+) -> Result<FSPattern, Error> {
     let s0 = raw.trim();
     if s0.is_empty() {
         return Err(parse_err(line, 1, "empty pattern"));
@@ -60,6 +63,8 @@ pub(crate) fn parse_pattern_str(raw: &str, line: usize) -> Result<FSPattern, Err
         // Final component depends on trailing slash.
         if ends_with_slash {
             entries.push(FSEntry::Dir(parse_dir(part)?));
+        } else if settings.allow_file_or_dir_leaf {
+            entries.push(FSEntry::Either(parse_file_or_dir(part)?));
         } else {
             entries.push(FSEntry::File(parse_file(part)?));
         }
@@ -93,6 +98,16 @@ fn parse_file(s: &str) -> Result<FileType, Error> {
     }
 }
 
+fn parse_file_or_dir(s: &str) -> Result<FileOrDirType, Error> {
+    match s {
+        "*" => Ok(FileOrDirType::Star),
+        _ => {
+            let component = parse_component(s)?;
+            Ok(FileOrDirType::Component(component))
+        }
+    }
+}
+
 fn parse_err(line: usize, col: usize, msg: impl Into<String>) -> Error {
     Error::Parse {
         line,
@@ -104,6 +119,7 @@ fn parse_err(line: usize, col: usize, msg: impl Into<String>) -> Error {
 #[cfg(test)]
 mod tests {
     use fspec_placeholder::ComponentAst;
+    use fspec_placeholder::ast::*;
 
     use super::*;
     use crate::spec::{DirType, FSEntry::*, FSPattern::*, FileType};
@@ -116,22 +132,20 @@ mod tests {
 
     #[test]
     fn unanchored_dir_then_entry() {
-        let p = parse_pattern_str("assets/*/*.png", 1).unwrap();
+        let p = parse_pattern_str("assets/*/*.png", 1, &MatchSettings::default()).unwrap();
         assert_eq!(
             p,
             Unanchored(vec![
-                //Dir(DirType::Component(c("assets"))),
                 Dir(DirType::Component(c("assets"))),
                 Dir(DirType::Star),
-                //File(FileType::Component(c("*.png"))),
-                File(FileType::Component(c("*.png"))),
+                Either(FileOrDirType::Component(c("*.png"))),
             ])
         );
     }
 
     #[test]
     fn trailing_slash_makes_last_component_dir() {
-        let p = parse_pattern_str("assets/*/", 1).unwrap();
+        let p = parse_pattern_str("assets/*/", 1, &MatchSettings::default()).unwrap();
         assert_eq!(
             p,
             Unanchored(vec![
@@ -144,70 +158,76 @@ mod tests {
 
     #[test]
     fn anchored_pattern() {
-        let p = parse_pattern_str("/assets/**/x", 1).unwrap();
+        let p = parse_pattern_str("/assets/**/x", 1, &MatchSettings::default()).unwrap();
         assert_eq!(
             p,
             Anchored(vec![
-                //Dir(DirType::Lit("assets".into())),
                 Dir(DirType::Component(c("assets"))),
                 Dir(DirType::DoubleStar),
-                //File(FileType::Lit("x".into()))
-                File(FileType::Component(c("x"))),
+                // by default settings this is a file *or* a dir
+                // using different MatchSettings will change this behavior.
+                Either(FileOrDirType::Component(c("x"))),
             ])
         );
     }
 
     #[test]
     fn anchored_pattern_with_dot_slash() {
-        let p = parse_pattern_str("./assets/**/x", 1).unwrap();
+        let p = parse_pattern_str("./assets/**/x", 1, &MatchSettings::default()).unwrap();
         assert_eq!(
             p,
             Anchored(vec![
-                //Dir(DirType::Lit("assets".into())),
                 Dir(DirType::Component(c("assets"))),
                 Dir(DirType::DoubleStar),
-                //File(FileType::Lit("x".into()))
-                File(FileType::Component(c("x"))),
+                // by default this is a file *or* a dir
+                Either(FileOrDirType::Component(c("x"))),
             ])
         );
     }
 
     #[test]
     fn anchored_dir_with_dot_slash() {
-        let p = parse_pattern_str("./bin/", 1).unwrap();
+        let p = parse_pattern_str("./bin/", 1, &MatchSettings::default()).unwrap();
         assert_eq!(p, Anchored(vec![Dir(DirType::Component(c("bin")))]));
     }
 
     #[test]
     fn rejects_double_slash() {
-        assert!(parse_pattern_str("a//b", 1).is_err());
+        assert!(parse_pattern_str("a//b", 1, &MatchSettings::default()).is_err());
     }
 
     #[test]
     fn spaces_in_dir_literal() {
-        let p = parse_pattern_str("/assets/this dir has spaces /x", 1).unwrap();
+        let p = parse_pattern_str(
+            "/assets/this dir has spaces /x",
+            1,
+            &MatchSettings::default(),
+        )
+        .unwrap();
         assert_eq!(
             p,
             Anchored(vec![
-                //Dir(DirType::Lit("assets".into())),
                 Dir(DirType::Component(c("assets"))),
-                //Dir(DirType::Lit("this dir has spaces ".into())),
                 Dir(DirType::Component(c("this dir has spaces "))),
-                //File(FileType::Lit("x".into()))
-                File(FileType::Component(c("x"))),
+                Either(FileOrDirType::Component(c("x"))),
             ])
         );
     }
 
     #[test]
     fn spaces_in_file_literal() {
-        let p = parse_pattern_str("/assets/approved/My mom named this file.png", 1).unwrap();
+        let p = parse_pattern_str(
+            "/assets/approved/My mom named this file.png",
+            1,
+            &MatchSettings::default(),
+        )
+        .unwrap();
         assert_eq!(
             p,
             Anchored(vec![
                 Dir(DirType::Component(c("assets"))),
                 Dir(DirType::Component(c("approved"))),
-                File(FileType::Component(c("My mom named this file.png"))),
+                Either(FileOrDirType::Component(c("My mom named this file.png"))),
             ])
         );
     }

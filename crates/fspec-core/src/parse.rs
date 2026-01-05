@@ -1,9 +1,9 @@
 use crate::error::Error;
-use crate::spec::{Rule, RuleKind};
+use crate::spec::{MatchSettings, Rule, RuleKind};
 
 use crate::pattern::parse_pattern_str;
 
-pub(crate) fn parse_fspec(src: &str) -> Result<Vec<Rule>, Error> {
+pub(crate) fn parse_fspec(src: &str, settings: &MatchSettings) -> Result<Vec<Rule>, Error> {
     let mut rules = Vec::new();
 
     for (idx, raw_line) in src.lines().enumerate() {
@@ -37,7 +37,7 @@ pub(crate) fn parse_fspec(src: &str) -> Result<Vec<Rule>, Error> {
             // No keyword found - treat entire line as pattern, default to 'allow'
             (RuleKind::Allow, trimmed.trim_end().to_string())
         };
-        let pattern = parse_pattern_str(&raw_pattern, line_no)?;
+        let pattern = parse_pattern_str(&raw_pattern, line_no, settings)?;
 
         rules.push(Rule {
             line: line_no,
@@ -75,7 +75,7 @@ mod tests {
             ignore **/*.tmp
         "#;
 
-        let rules = parse_fspec(src).unwrap();
+        let rules = parse_fspec(src, &MatchSettings::default()).unwrap();
         assert_eq!(rules.len(), 2);
         assert_eq!(rules[0].line, 3);
         assert_eq!(rules[0].kind, RuleKind::Allow);
@@ -92,7 +92,7 @@ mod tests {
             /src/utils.rs
         "#;
 
-        let rules = parse_fspec(src).unwrap();
+        let rules = parse_fspec(src, &MatchSettings::default()).unwrap();
         assert_eq!(rules.len(), 4);
         // Line without keyword defaults to Allow
         assert_eq!(rules[0].kind, RuleKind::Allow);
@@ -117,7 +117,7 @@ mod tests {
             ./target/
         "#;
 
-        let rules = parse_fspec(src).unwrap();
+        let rules = parse_fspec(src, &MatchSettings::default()).unwrap();
         assert_eq!(rules.len(), 3);
         // All should default to Allow
         assert!(rules.iter().all(|r| r.kind == RuleKind::Allow));

@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::Path;
 
-use fspec_core::{Severity, check_tree};
+use fspec_core::{MatchSettings, check_tree};
 
 fn write_file(path: &Path, contents: &str) {
     if let Some(parent) = path.parent() {
@@ -27,7 +27,7 @@ allow /bin/allowed.txt
     write_file(&root.join("bin/ignored.txt"), "dummy_file");
 
     // Run check
-    let report = check_tree(root, Severity::Error).unwrap();
+    let report = check_tree(root, &MatchSettings::default()).unwrap();
 
     assert!(report.is_allowed("bin/allowed.txt"));
     assert!(report.is_allowed("bin/"));
@@ -52,7 +52,7 @@ allow ./bin/allowed.txt
     write_file(&root.join("bin/ignored.txt"), "dummy_file");
 
     // Run check
-    let report = check_tree(root, Severity::Error).unwrap();
+    let report = check_tree(root, &MatchSettings::default()).unwrap();
 
     assert!(report.is_allowed("bin/allowed.txt"));
     assert!(report.is_allowed("bin/"));
@@ -83,7 +83,7 @@ ignore ./target/
     write_file(&root.join("src/utils.rs"), "pub fn utils() {}");
     write_file(&root.join("target/debug/app"), "binary");
 
-    let report = check_tree(root, Severity::Error).unwrap();
+    let report = check_tree(root, &MatchSettings::default()).unwrap();
 
     // Paths without 'allow' keyword should default to allowed
     assert!(report.is_allowed("src/main.rs"));
