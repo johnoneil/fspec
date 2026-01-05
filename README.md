@@ -275,7 +275,8 @@ fspec is intentionally staged. Not all features need to exist at once.
 - [ ] ~~Improve allowed comments in the grammar and impl. Allow `#` anywhere.~~
 - [x] repeated placeholder equality (`year` = `year`)
 - [x] Improve union limiter to allow names like `ext` in `{ext:mp4|mkv}`
-- [ ] Implement `./file` as either a file or directory to match `fined` and `.gitignore` behavior. Ensure behavior is switchable (between "file only" and "file or directory" to allow later strictness switches.)
+- [x] Implement `./file` as either a file or directory to match `fined` and `.gitignore` behavior. Ensure behavior is switchable (between "file only" and "file or directory" to allow later strictness switches.)
+- [x] Precompile matching rules after rule parsing to improve matching performance.
 - [ ] Introduce a command line tool wrapper crate.
 - [ ] Make the basic rule engine usable in real world cases.
 - [ ] Command line tool output switches and JSON report output.
