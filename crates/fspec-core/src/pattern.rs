@@ -119,10 +119,9 @@ fn parse_err(line: usize, col: usize, msg: impl Into<String>) -> Error {
 #[cfg(test)]
 mod tests {
     use fspec_placeholder::ComponentAst;
-    use fspec_placeholder::ast::*;
 
     use super::*;
-    use crate::spec::{DirType, FSEntry::*, FSPattern::*, FileType};
+    use crate::spec::{DirType, FSEntry::*, FSPattern::*};
 
     use fspec_placeholder::parse_component;
 

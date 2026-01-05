@@ -1,9 +1,7 @@
-use crate::ast::*;
-use crate::parser::*;
-
 #[cfg(test)]
 mod tests {
-    use super::*;
+    use crate::ast::{Choice, LimiterArg, Part, PlaceholderNode};
+    use crate::parser::{ParseErrorKind, parse_component};
 
     #[test]
     fn parse_simple_parts() {

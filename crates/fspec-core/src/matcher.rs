@@ -121,10 +121,10 @@ fn limiter_to_regex(name: &str, args: &[LimiterArg]) -> String {
 
         // int(n): exactly n digits
         "int" => {
-            if let Some(LimiterArg::Number { value, .. }) = args.get(0) {
-                if let Ok(n) = value.parse::<usize>() {
-                    return format!(r"[0-9]{{{}}}", n);
-                }
+            if let Some(LimiterArg::Number { value, .. }) = args.first()
+                && let Ok(n) = value.parse::<usize>()
+            {
+                return format!(r"[0-9]{{{}}}", n);
             }
             // fallback: invalid args -> non-empty
             ".+".to_string()
@@ -132,7 +132,7 @@ fn limiter_to_regex(name: &str, args: &[LimiterArg]) -> String {
 
         // re("..."): user regex
         "re" => {
-            if let Some(LimiterArg::Str { value, .. }) = args.get(0) {
+            if let Some(LimiterArg::Str { value, .. }) = args.first() {
                 return format!(r"(?:{})", value);
             }
             ".+".to_string()
@@ -357,10 +357,7 @@ fn extract_placeholders_recursive(
                 let match_result = extract_component_values(component, &path_parts[path_idx]);
                 if match_result.matched {
                     for (name, value) in match_result.placeholders {
-                        placeholders
-                            .entry(name)
-                            .or_insert_with(Vec::new)
-                            .push(value);
+                        placeholders.entry(name).or_default().push(value);
                     }
                     extract_placeholders_recursive(
                         parts,
@@ -396,10 +393,7 @@ fn extract_placeholders_recursive(
                 let match_result = extract_component_values(component, &path_parts[path_idx]);
                 if match_result.matched {
                     for (name, value) in match_result.placeholders {
-                        placeholders
-                            .entry(name)
-                            .or_insert_with(Vec::new)
-                            .push(value);
+                        placeholders.entry(name).or_default().push(value);
                     }
                     path_idx + 1 == path_parts.len()
                 } else {
@@ -427,10 +421,7 @@ fn extract_placeholders_recursive(
                                     extract_component_values(component, &path_parts[path_idx]);
                                 if match_result.matched {
                                     for (name, value) in match_result.placeholders {
-                                        placeholders
-                                            .entry(name)
-                                            .or_insert_with(Vec::new)
-                                            .push(value);
+                                        placeholders.entry(name).or_default().push(value);
                                     }
                                     path_idx + 1 == path_parts.len()
                                 } else {
@@ -452,10 +443,7 @@ fn extract_placeholders_recursive(
                                     extract_component_values(component, &path_parts[path_idx]);
                                 if match_result.matched {
                                     for (name, value) in match_result.placeholders {
-                                        placeholders
-                                            .entry(name)
-                                            .or_insert_with(Vec::new)
-                                            .push(value);
+                                        placeholders.entry(name).or_default().push(value);
                                     }
                                     extract_placeholders_recursive(
                                         parts,
