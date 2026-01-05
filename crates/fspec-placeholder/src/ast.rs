@@ -73,6 +73,55 @@ pub struct LimiterSpec {
     pub span: Span,
 }
 
+impl LimiterSpec {
+    /// Convert a limiter spec to a regex fragment that matches values constrained by this limiter.
+    ///
+    /// Returns a regex pattern string (without anchors) that can be embedded in larger regex patterns.
+    /// For unknown or invalid limiters, returns `.+` as a fallback (matches non-empty string).
+    ///
+    /// To add a new limiter:
+    /// 1. Add a new match arm below matching the limiter name
+    /// 2. Extract and validate any required arguments from `self.args`
+    /// 3. Return the appropriate regex fragment string
+    pub fn to_regex_fragment(&self) -> String {
+        match self.name.as_str() {
+            // ASCII case/style
+            "snake_case" => r"[a-z0-9]+(?:_[a-z0-9]+)*".to_string(),
+            "kebab_case" => r"[a-z0-9]+(?:-[a-z0-9]+)*".to_string(),
+            "pascal_case" => r"[A-Z][a-z0-9]*(?:[A-Z][a-z0-9]*)*".to_string(),
+            "upper_case" => r"[A-Z0-9]+".to_string(),
+            "lower_case" => r"[a-z0-9]+".to_string(),
+
+            // int(n): exactly n digits
+            "int" => {
+                if let Some(LimiterArg::Number { value, .. }) = self.args.first()
+                    && let Ok(n) = value.parse::<usize>()
+                {
+                    return format!(r"[0-9]{{{}}}", n);
+                }
+                // fallback: invalid args -> non-empty
+                ".+".to_string()
+            }
+
+            // re("..."): user regex
+            "re" => {
+                if let Some(LimiterArg::Str { value, .. }) = self.args.first() {
+                    return format!(r"(?:{})", value);
+                }
+                ".+".to_string()
+            }
+
+            // Unicode-ish buckets (regex crate supports \p{..})
+            "letters" => r"\p{L}+".to_string(),
+            "numbers" => r"\p{Nd}+".to_string(),
+            "alnum" => r"(?:\p{L}|\p{Nd})+".to_string(),
+
+            // Unknown limiter: accept non-empty
+            _ => ".+".to_string(),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CaptureNode {
     pub name: String,

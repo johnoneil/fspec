@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use crate::spec::{DirType, FSEntry, FSPattern, FileOrDirType, FileType, Rule, RuleKind};
-use fspec_placeholder::ast::{Choice, ComponentAst, LimiterArg, Part, PlaceholderNode};
-use regex::Regex;
+use crate::spec::{
+    CompiledComponent, DirType, FSEntry, FSPattern, FileOrDirType, FileType, Rule, RuleKind,
+};
 
-/// Result of matching a component AST against a string
+/// Result of matching a compiled component against a string
 #[derive(Debug)]
 struct ComponentMatch {
     /// Whether the component matched
@@ -14,88 +14,18 @@ struct ComponentMatch {
     placeholders: HashMap<String, String>,
 }
 
-fn matches_component_ast(ast: &ComponentAst, actual: &str) -> bool {
-    extract_component_values(ast, actual).matched
+fn matches_compiled_component(compiled: &CompiledComponent, actual: &str) -> bool {
+    extract_component_values(compiled, actual).matched
 }
 
-fn extract_component_values(ast: &ComponentAst, actual: &str) -> ComponentMatch {
-    let mut pat = String::from("^");
-    let mut placeholder_indices: Vec<(String, usize)> = Vec::new(); // name -> capture group index
-    let mut capture_group = 1;
-
-    for part in &ast.parts {
-        match part {
-            Part::Literal(lit) => pat.push_str(&regex::escape(&lit.value)),
-            Part::Star(_) => pat.push_str(".*"),
-            Part::Placeholder(ph) => match &ph.node {
-                PlaceholderNode::OneOf(oneof) => {
-                    // Named one-of: extract the matched choice
-                    if let Some(named) = &oneof.name {
-                        let mut alts: Vec<String> = Vec::new();
-                        for choice in &oneof.choices {
-                            let s = match choice {
-                                Choice::Ident { value, .. } => value,
-                                Choice::Str { value, .. } => value,
-                            };
-                            alts.push(regex::escape(s));
-                        }
-                        pat.push('('); // capture group for named one-of
-                        pat.push_str(&alts.join("|"));
-                        pat.push(')');
-                        placeholder_indices.push((named.name.clone(), capture_group));
-                        capture_group += 1;
-                    } else {
-                        // Unnamed one-of: no capture
-                        let mut alts: Vec<String> = Vec::new();
-                        for choice in &oneof.choices {
-                            let s = match choice {
-                                Choice::Ident { value, .. } => value,
-                                Choice::Str { value, .. } => value,
-                            };
-                            alts.push(regex::escape(s));
-                        }
-                        pat.push_str("(?:");
-                        pat.push_str(&alts.join("|"));
-                        pat.push(')');
-                    }
-                }
-                PlaceholderNode::Capture(cap) => {
-                    // Capture with name: extract the matched value
-                    let mut cap_re = String::from(".+");
-
-                    if let Some(lim) = &cap.limiter {
-                        cap_re = limiter_to_regex(lim.name.as_str(), &lim.args);
-                    }
-
-                    pat.push('('); // capture group for named capture
-                    pat.push_str(&cap_re);
-                    pat.push(')');
-                    placeholder_indices.push((cap.name.clone(), capture_group));
-                    capture_group += 1;
-                }
-            },
-        }
-    }
-
-    pat.push('$');
-
-    // If limiter_to_regex yields invalid regex (e.g. user gave a bad re("...")),
-    // treat as non-match rather than panic.
-    let re = match Regex::new(&pat) {
-        Ok(r) => r,
-        Err(_) => {
-            return ComponentMatch {
-                matched: false,
-                placeholders: HashMap::new(),
-            };
-        }
-    };
-
-    if let Some(caps) = re.captures(actual) {
+/// Extract placeholder values from a matched component using the pre-compiled regex.
+fn extract_component_values(compiled: &CompiledComponent, actual: &str) -> ComponentMatch {
+    // Use the pre-compiled regex directly - no compilation needed!
+    if let Some(caps) = compiled.regex.captures(actual) {
         let mut placeholders = HashMap::new();
-        for (name, idx) in placeholder_indices {
-            if let Some(mat) = caps.get(idx) {
-                placeholders.insert(name, mat.as_str().to_string());
+        for (name, idx) in &compiled.placeholder_indices {
+            if let Some(mat) = caps.get(*idx) {
+                placeholders.insert(name.clone(), mat.as_str().to_string());
             }
         }
         ComponentMatch {
@@ -110,44 +40,6 @@ fn extract_component_values(ast: &ComponentAst, actual: &str) -> ComponentMatch 
     }
 }
 
-fn limiter_to_regex(name: &str, args: &[LimiterArg]) -> String {
-    match name {
-        // ASCII case/style
-        "snake_case" => r"[a-z0-9]+(?:_[a-z0-9]+)*".to_string(),
-        "kebab_case" => r"[a-z0-9]+(?:-[a-z0-9]+)*".to_string(),
-        "pascal_case" => r"[A-Z][a-z0-9]*(?:[A-Z][a-z0-9]*)*".to_string(),
-        "upper_case" => r"[A-Z0-9]+".to_string(),
-        "lower_case" => r"[a-z0-9]+".to_string(),
-
-        // int(n): exactly n digits
-        "int" => {
-            if let Some(LimiterArg::Number { value, .. }) = args.first()
-                && let Ok(n) = value.parse::<usize>()
-            {
-                return format!(r"[0-9]{{{}}}", n);
-            }
-            // fallback: invalid args -> non-empty
-            ".+".to_string()
-        }
-
-        // re("..."): user regex
-        "re" => {
-            if let Some(LimiterArg::Str { value, .. }) = args.first() {
-                return format!(r"(?:{})", value);
-            }
-            ".+".to_string()
-        }
-
-        // Unicode-ish buckets (regex crate supports \p{..})
-        "letters" => r"\p{L}+".to_string(),
-        "numbers" => r"\p{Nd}+".to_string(),
-        "alnum" => r"(?:\p{L}|\p{Nd})+".to_string(),
-
-        // Unknown limiter for now: accept non-empty
-        _ => ".+".to_string(),
-    }
-}
-
 #[derive(Clone, Copy, PartialEq)]
 enum Terminal {
     File,
@@ -159,7 +51,7 @@ fn matches_terminal_pat(terminal: Terminal, pat: &FSEntry, actual: &str) -> bool
         // FILE
         (Terminal::File, FSEntry::File(FileType::Component(c)))
         | (Terminal::File, FSEntry::Either(FileOrDirType::Component(c))) => {
-            matches_component_ast(c, actual)
+            matches_compiled_component(c, actual)
         }
         (Terminal::File, FSEntry::File(FileType::Star))
         | (Terminal::File, FSEntry::Either(FileOrDirType::Star)) => true,
@@ -167,7 +59,7 @@ fn matches_terminal_pat(terminal: Terminal, pat: &FSEntry, actual: &str) -> bool
         // DIR
         (Terminal::Dir, FSEntry::Dir(DirType::Component(c)))
         | (Terminal::Dir, FSEntry::Either(FileOrDirType::Component(c))) => {
-            matches_component_ast(c, actual)
+            matches_compiled_component(c, actual)
         }
         (Terminal::Dir, FSEntry::Dir(DirType::Star))
         | (Terminal::Dir, FSEntry::Either(FileOrDirType::Star)) => true,
@@ -181,7 +73,9 @@ fn matches_terminal_pat(terminal: Terminal, pat: &FSEntry, actual: &str) -> bool
 
 fn matches_dir_pat(pat: &FSEntry, actual: &str) -> bool {
     match pat {
-        FSEntry::Dir(DirType::Component(component)) => matches_component_ast(component, actual),
+        FSEntry::Dir(DirType::Component(component)) => {
+            matches_compiled_component(component, actual)
+        }
         FSEntry::Dir(DirType::Star) => true,
         FSEntry::Dir(DirType::DoubleStar) => false,
         _ => false,

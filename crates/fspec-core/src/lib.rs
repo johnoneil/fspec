@@ -1,3 +1,4 @@
+mod compile;
 mod error;
 mod matcher;
 mod parse;

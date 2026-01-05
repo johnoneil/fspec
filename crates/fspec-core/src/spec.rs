@@ -1,4 +1,20 @@
 use fspec_placeholder::ComponentAst;
+use regex::Regex;
+
+/// A compiled component with a pre-compiled regex for efficient matching.
+///
+/// This stores the original ComponentAst along with a compiled regex pattern
+/// and placeholder index mappings, avoiding repeated regex compilation during
+/// tree traversal.
+#[derive(Debug, Clone)]
+pub struct CompiledComponent {
+    /// The original AST (kept for debugging/comparison)
+    pub ast: ComponentAst,
+    /// Pre-compiled regex pattern (anchored with ^ and $)
+    pub regex: Regex,
+    /// Mapping of placeholder names to capture group indices
+    pub placeholder_indices: Vec<(String, usize)>,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
 pub enum Severity {
@@ -32,20 +48,23 @@ pub enum RuleKind {
     Ignore,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+// Note: Rule, FSPattern, FSEntry, DirType, FileType, and FileOrDirType
+// no longer derive Eq/PartialEq because CompiledComponent contains Regex,
+// which doesn't implement Eq/PartialEq.
+#[derive(Debug, Clone)]
 pub struct Rule {
     pub line: usize,
     pub kind: RuleKind,
     pub pattern: FSPattern,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum FSPattern {
     Anchored(Vec<FSEntry>),
     Unanchored(Vec<FSEntry>),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum FSEntry {
     // Unambiguously a directory
     Dir(DirType),
@@ -57,21 +76,21 @@ pub enum FSEntry {
     Either(FileOrDirType),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum DirType {
-    Component(ComponentAst),
+    Component(CompiledComponent),
     Star,
     DoubleStar,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum FileType {
-    Component(ComponentAst),
+    Component(CompiledComponent),
     Star,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum FileOrDirType {
-    Component(ComponentAst),
+    Component(CompiledComponent),
     Star,
 }
