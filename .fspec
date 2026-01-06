@@ -9,6 +9,9 @@ ignore ./.*
 allow ./Cargo.toml
 allow ./Cargo.lock
 
+# allow markdown anywhere
+allow *.md
+
 # crates.
 # kebab-case crate naming
 allow ./crates/{crate:kebab_case}/Cargo.toml
