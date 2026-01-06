@@ -3,6 +3,9 @@ name = "fspec-core"
 version = "0.1.0"
 edition = "2024"
 
+[features]
+debug-walk = []
+
 [dependencies]
 fspec-placeholder = { version = "0.1.0", path = "../fspec-placeholder" }
 regex = "1.12.2"

@@ -332,6 +332,7 @@ fn debug_enter(ctx: &WalkCtx, abs: &Path) {
         ctx.rel.display().to_string()
     };
 
+    #[cfg(feature = "debug-walk")]
     eprintln!(
         "{}> enter {}  (abs={})  live_rules={}  inherited={:?}",
         indent(ctx.depth),
@@ -342,10 +343,10 @@ fn debug_enter(ctx: &WalkCtx, abs: &Path) {
     );
 }
 
-#[cfg(not(debug_assertions))]
+#[cfg(feature = "debug-walk")]
 fn debug_enter(_ctx: &WalkCtx, _abs: &Path) {}
 
-#[cfg(debug_assertions)]
+#[cfg(feature = "debug-walk")]
 fn debug_exit(ctx: &WalkCtx, _abs: &Path) {
     let rel_disp = if ctx.rel.as_os_str().is_empty() {
         ".".to_string()
@@ -356,10 +357,10 @@ fn debug_exit(ctx: &WalkCtx, _abs: &Path) {
     eprintln!("{}< exit  {}", indent(ctx.depth), rel_disp);
 }
 
-#[cfg(not(debug_assertions))]
+#[cfg(not(feature = "debug-walk"))]
 fn debug_exit(_ctx: &WalkCtx, _abs: &Path) {}
 
-#[cfg(debug_assertions)]
+#[cfg(feature = "debug-walk")]
 fn indent(depth: usize) -> String {
     // 2 spaces per depth, cheap and readable
     "  ".repeat(depth)

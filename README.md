@@ -66,11 +66,14 @@ ignore ./target/
 allow ./Cargo.toml
 allow ./Cargo.lock
 
+# allow markdown anywhere
+allow *.md
+
 # crates.
 # kebab-case crate naming
-allow ./crates/{crate:kebab-case}/Cargo.toml
+allow ./crates/{crate:kebab_case}/Cargo.toml
 # snake_case naming of source files under certain trees.
-allow ./crates/{crate:kebab-case}/{src|tests|examples}/**/{snake_case}.rs
+allow ./crates/{crate:kebab_case}/{src|tests|examples}/**/{snake_case}.rs
 ```
 
 Anything not matching these rules will be reported.

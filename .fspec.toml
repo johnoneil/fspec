@@ -1,8 +1,0 @@
-
-# all rust source in all dirs named snake_case
-[file.rust]
-pattern = "**/{snake_case}.rs"
-
-# all pest grammars in all dirs named snake_case
-[file.pest]
-pattern = '**/{snake_case}.rs'

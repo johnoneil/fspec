@@ -1,50 +1,16 @@
-# ------------------------------------------------------------
-# Global ignores (apply anywhere)
-# ------------------------------------------------------------
+# ignore build artifacts at root only.
+# if different artifacts are polluting crates, it will be reported.
+ignore ./target/
+# ignore any hidden files
+ignore ./.*
 
-# Cargo build artifacts
--target/
+# root workspace files
+# we allow a Cargo.lock at workspace root and nowhere else.
+allow ./Cargo.toml
+allow ./Cargo.lock
 
-# VCS / editor noise
--.fspec
--.git/
--.idea/
--.vscode/
-
-
-# ------------------------------------------------------------
-# Workspace root files
-# ------------------------------------------------------------
-+/Cargo.toml
-+/Cargo.lock
-
-# Common root metadata (optional but typical)
-+/README*
-+/LICENSE*
-+/.gitignore
-+/rustfmt.toml
-
-
-# ------------------------------------------------------------
-# Rust source files (anywhere, unless ignored)
-# ------------------------------------------------------------
-
-# All Rust source must be snake_case
-+{snake_case}.rs
-
-
-# ------------------------------------------------------------
-# Crates layout (workspace crates/)
-# ------------------------------------------------------------
-
-# NOTE: these crate specific contents might be better handled 
-# by crate internal .fspec, adding or overriding rules from the
-# workspace root.
-# Each crate must have a Cargo.toml (but no Cargo.lock here)
-+/crates/{crate:kebab-case}/Cargo.toml
-
-# Source tree exists and may contain subdirectories
-+/crates/{crate:kebab-case}/src/**/
-
-# Only snake_case Rust files allowed under src/
-+/crates/{crate:kebab-case}/src/**/{snake_case}.rs
+# crates.
+# kebab-case crate naming
+allow ./crates/{crate:kebab_case}/Cargo.toml
+# snake_case naming of source files under certain trees.
+allow ./crates/{crate:kebab_case}/{src|tests|examples}/**/{snake_case}.rs

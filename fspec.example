@@ -1,8 +1,0 @@
--/bin          # ignore a file named bin OR a dir named bin
--/bin/         # ignore a dir named bin and everything under it
-
--/secrets.txt  # ignore this specific file at root (if rooted is used)
-- secrets.txt  # ignore any secrets.txt anywhere (unless you want ignore to also be blocked by ignored-subtree rules; usually no)
-
--/bin/
-+/bin/tool.rs  # re-allow this one file (warn: “re-allowed inside ignored subtree”)
