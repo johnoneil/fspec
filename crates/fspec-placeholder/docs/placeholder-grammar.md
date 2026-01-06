@@ -70,7 +70,10 @@ placeholder      := "{" WS* placeholder_body WS* "}"
 
 placeholder_body := named_oneof
                   | oneof
+                  | anonymous_oneof
                   | capture_or_ref
+
+anonymous_oneof  := ":" WS* oneof
 
 capture_or_ref   := IDENT (WS* ":" WS* limiter_spec)?
                  // (if you already had `{year}` meaning "reference year" vs capture,
@@ -90,11 +93,17 @@ choice           := IDENT
 quoted_string    := DQUOTE qchar* DQUOTE    // same rules as quoted_literal
 ```
 
+Notes:
+
+* The leading `:` form (`{:<oneof>}`) is an optional alias for unnamed one-of placeholders. It exists for style consistency with other anonymous limiter placeholders, but is not required because `|` already makes one-of self-identifying.
+
 Examples:
 
 ```fspec
 # Unnamed one-of
 allow file.{mp4|mkv}
+# Unnamed one-of (sigiled alias; equivalent to the form above)
+allow file.{:mp4|mkv}
 allow file.{"mp*4"|"m/v"|"""in quotes"""}
 # Named one-of
 allow file.{ext:mp4|mkv}

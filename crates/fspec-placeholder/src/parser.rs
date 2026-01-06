@@ -135,6 +135,172 @@ fn parse_placeholder(c: &mut Cursor<'_>) -> Result<PlaceholderPart, ParseError> 
         ));
     }
 
+    // Check for anonymous placeholder: {:limiter} or {:limiter(args)} or {:choice|choice}
+    // Anonymous placeholders start with ':' directly after '{'
+    if matches!(first.token, Token::Colon) {
+        c.bump(); // consume ':'
+
+        // Look ahead to determine if this is an anonymous one-of or anonymous capture with limiter
+        let after_colon = c.peek().ok_or_else(|| {
+            ParseError::new(
+                ParseErrorKind::UnexpectedEof,
+                first.end,
+                Some(span(first.start, first.end)),
+                "expected limiter or one-of choice after ':'",
+            )
+        })?;
+
+        let after_that = c.toks.get(c.i + 1);
+
+        // Check if this looks like an anonymous one-of: {:choice|choice}
+        // We need: IDENT/QuotedString followed by '|'
+        let looks_like_anonymous_oneof =
+            matches!(after_colon.token, Token::Ident(_) | Token::QuotedString(_))
+                && after_that
+                    .map(|t| matches!(t.token, Token::Pipe))
+                    .unwrap_or(false);
+
+        if looks_like_anonymous_oneof {
+            // Parse as anonymous one-of: {:choice|choice}
+            let first_choice_tok = c.peek().ok_or_else(|| {
+                ParseError::new(
+                    ParseErrorKind::UnexpectedEof,
+                    after_colon.start,
+                    Some(span(after_colon.start, after_colon.end)),
+                    "expected choice after ':' in anonymous one-of",
+                )
+            })?;
+
+            let (first_choice_kind, first_choice_value, first_choice_span) = match &first_choice_tok
+                .token
+            {
+                Token::Ident(s) => {
+                    let sp = span(first_choice_tok.start, first_choice_tok.end);
+                    c.bump();
+                    ("ident", s.clone(), sp)
+                }
+                Token::QuotedString(s) => {
+                    let sp = span(first_choice_tok.start, first_choice_tok.end);
+                    c.bump();
+                    ("str", s.clone(), sp)
+                }
+                _ => {
+                    return Err(ParseError::new(
+                        ParseErrorKind::UnexpectedToken,
+                        first_choice_tok.start,
+                        Some(span(first_choice_tok.start, first_choice_tok.end)),
+                        "expected identifier or quoted string as first choice in anonymous one-of",
+                    ));
+                }
+            };
+
+            let mut choices: Vec<Choice> = Vec::new();
+            choices.push(match first_choice_kind {
+                "ident" => Choice::Ident {
+                    value: first_choice_value,
+                    span: first_choice_span,
+                },
+                _ => Choice::Str {
+                    value: first_choice_value,
+                    span: first_choice_span,
+                },
+            });
+
+            let mut saw_pipe = false;
+            while let Some(t) = c.peek() {
+                if !matches!(t.token, Token::Pipe) {
+                    break;
+                }
+                saw_pipe = true;
+                c.bump(); // consume '|'
+
+                let choice_tok = c.peek().ok_or_else(|| {
+                    ParseError::new(
+                        ParseErrorKind::UnexpectedEof,
+                        t.end,
+                        Some(span(t.start, t.end)),
+                        "expected choice after '|' in anonymous one-of",
+                    )
+                })?;
+
+                // Reject empty arm: "{:a|}"
+                if matches!(choice_tok.token, Token::RBrace) {
+                    return Err(ParseError::new(
+                        ParseErrorKind::EmptyOneOfArm,
+                        choice_tok.start,
+                        Some(span(choice_tok.start, choice_tok.end)),
+                        "empty one-of arm is not allowed",
+                    ));
+                }
+
+                let ch = match &choice_tok.token {
+                    Token::Ident(s) => {
+                        let sp = span(choice_tok.start, choice_tok.end);
+                        c.bump();
+                        Choice::Ident {
+                            value: s.clone(),
+                            span: sp,
+                        }
+                    }
+                    Token::QuotedString(s) => {
+                        let sp = span(choice_tok.start, choice_tok.end);
+                        c.bump();
+                        Choice::Str {
+                            value: s.clone(),
+                            span: sp,
+                        }
+                    }
+                    _ => {
+                        return Err(ParseError::new(
+                            ParseErrorKind::UnexpectedToken,
+                            choice_tok.start,
+                            Some(span(choice_tok.start, choice_tok.end)),
+                            "expected identifier or quoted string as one-of choice",
+                        ));
+                    }
+                };
+
+                choices.push(ch);
+            }
+
+            if !saw_pipe {
+                return Err(ParseError::new(
+                    ParseErrorKind::EmptyOneOf,
+                    first_choice_span.start,
+                    Some(first_choice_span),
+                    "one-of must contain at least one '|'",
+                ));
+            }
+
+            let rbrace = c.expect_token("'}'", |t| matches!(t, Token::RBrace))?;
+            let full = span_join(lspan, span(rbrace.start, rbrace.end));
+
+            return Ok(PlaceholderPart {
+                node: PlaceholderNode::OneOf(OneOfNode {
+                    name: None, // anonymous one-of has no name
+                    choices,
+                    span: full,
+                }),
+                span: full,
+            });
+        } else {
+            // Parse as anonymous capture with limiter: {:limiter} or {:limiter(args)}
+            let limiter = Some(parse_limiter_spec(c)?);
+            let rbrace = c.expect_token("'}'", |t| matches!(t, Token::RBrace))?;
+            let full = span_join(lspan, span(rbrace.start, rbrace.end));
+
+            return Ok(PlaceholderPart {
+                node: PlaceholderNode::Capture(CaptureNode {
+                    name: String::new(),                     // empty name for anonymous placeholder
+                    name_span: span(lbrace.end, lbrace.end), // empty span at start of placeholder
+                    limiter,
+                    span: full,
+                }),
+                span: full,
+            });
+        }
+    }
+
     // First term: Ident or QuotedString
     let (term_kind, term_value, term_span) = match &first.token {
         Token::Ident(s) => {
@@ -152,7 +318,7 @@ fn parse_placeholder(c: &mut Cursor<'_>) -> Result<PlaceholderPart, ParseError> 
                 ParseErrorKind::UnexpectedToken,
                 first.start,
                 Some(span(first.start, first.end)),
-                "expected identifier or quoted string inside '{...}'",
+                "expected identifier, quoted string, or ':' (for anonymous placeholder) inside '{...}'",
             ));
         }
     };

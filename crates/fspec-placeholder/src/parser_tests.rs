@@ -1018,8 +1018,44 @@ mod tests {
     }
 
     #[test]
+    fn parse_anonymous_alnum_limiter_with_spaces() {
+        let ast = parse_component("{ : alnum }").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "alnum");
+        assert_eq!(lim.args.len(), 0);
+    }
+
+    #[test]
     fn parse_int_limiter_with_numeric_arg() {
         let ast = parse_component("{year:int(4)}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let c = match &p.node {
+            PlaceholderNode::Capture(c) => c,
+            _ => panic!("expected capture"),
+        };
+        let lim = c.limiter.as_ref().unwrap();
+        assert_eq!(lim.name, "int");
+        assert_eq!(lim.args.len(), 1);
+        match &lim.args[0] {
+            LimiterArg::Number { value, .. } => assert_eq!(value, "4"),
+            _ => panic!("expected number arg"),
+        }
+    }
+
+    #[test]
+    fn parse_anonymous_int_limiter_with_numeric_arg() {
+        let ast = parse_component("{:int(4)}").unwrap();
         let p = match &ast.parts[0] {
             Part::Placeholder(p) => p,
             _ => panic!("expected placeholder"),
@@ -1055,5 +1091,112 @@ mod tests {
             LimiterArg::Str { value, .. } => assert_eq!(value, "[a-z0-9_-]+"),
             _ => panic!("expected str arg"),
         }
+    }
+
+    // ===== Tests for anonymous one-of placeholders =====
+
+    #[test]
+    fn parse_anonymous_oneof_basic() {
+        // {:mp4|mkv} should be equivalent to {mp4|mkv}
+        let ast = parse_component("{:mp4|mkv}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let one = match &p.node {
+            PlaceholderNode::OneOf(o) => o,
+            _ => panic!("expected oneof"),
+        };
+        assert!(one.name.is_none()); // anonymous one-of has no name
+        assert_eq!(one.choices.len(), 2);
+        match &one.choices[0] {
+            Choice::Ident { value, .. } => assert_eq!(value, "mp4"),
+            _ => panic!("expected ident choice"),
+        }
+        match &one.choices[1] {
+            Choice::Ident { value, .. } => assert_eq!(value, "mkv"),
+            _ => panic!("expected ident choice"),
+        }
+    }
+
+    #[test]
+    fn parse_anonymous_oneof_with_quoted_choices() {
+        let ast = parse_component(r#"{:"mp*4"|"m/v"}"#).unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let one = match &p.node {
+            PlaceholderNode::OneOf(o) => o,
+            _ => panic!("expected oneof"),
+        };
+        assert!(one.name.is_none());
+        assert_eq!(one.choices.len(), 2);
+        match &one.choices[0] {
+            Choice::Str { value, .. } => assert_eq!(value, "mp*4"),
+            _ => panic!("expected str choice"),
+        }
+        match &one.choices[1] {
+            Choice::Str { value, .. } => assert_eq!(value, "m/v"),
+            _ => panic!("expected str choice"),
+        }
+    }
+
+    #[test]
+    fn parse_anonymous_oneof_with_mixed_choices() {
+        let ast = parse_component(r#"{:mp4|"mkv"|avi}"#).unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let one = match &p.node {
+            PlaceholderNode::OneOf(o) => o,
+            _ => panic!("expected oneof"),
+        };
+        assert!(one.name.is_none());
+        assert_eq!(one.choices.len(), 3);
+        match &one.choices[0] {
+            Choice::Ident { value, .. } => assert_eq!(value, "mp4"),
+            _ => panic!("expected ident choice"),
+        }
+        match &one.choices[1] {
+            Choice::Str { value, .. } => assert_eq!(value, "mkv"),
+            _ => panic!("expected str choice"),
+        }
+        match &one.choices[2] {
+            Choice::Ident { value, .. } => assert_eq!(value, "avi"),
+            _ => panic!("expected ident choice"),
+        }
+    }
+
+    #[test]
+    fn parse_anonymous_oneof_with_whitespace() {
+        // Test that whitespace is allowed around the colon and choices
+        let ast = parse_component("{ : mp4 | mkv }").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let one = match &p.node {
+            PlaceholderNode::OneOf(o) => o,
+            _ => panic!("expected oneof"),
+        };
+        assert!(one.name.is_none());
+        assert_eq!(one.choices.len(), 2);
+    }
+
+    #[test]
+    fn parse_anonymous_oneof_many_choices() {
+        let ast = parse_component("{:mp4|mkv|avi|mov|wmv}").unwrap();
+        let p = match &ast.parts[0] {
+            Part::Placeholder(p) => p,
+            _ => panic!("expected placeholder"),
+        };
+        let one = match &p.node {
+            PlaceholderNode::OneOf(o) => o,
+            _ => panic!("expected oneof"),
+        };
+        assert!(one.name.is_none());
+        assert_eq!(one.choices.len(), 5);
     }
 }
