@@ -23,6 +23,20 @@ fn canon_key(s: &str) -> String {
         t.pop();
     }
 
+    // On case-insensitive file systems (like macOS), normalize to lowercase
+    // so that paths that differ only in case are treated as the same.
+    // This ensures that if a file is matched with one case, it's also
+    // considered matched when queried with a different case.
+    #[cfg(target_os = "macos")]
+    {
+        t = t.to_lowercase();
+    }
+    // On Windows, also normalize to lowercase for case-insensitive matching
+    #[cfg(target_os = "windows")]
+    {
+        t = t.to_lowercase();
+    }
+
     t
 }
 

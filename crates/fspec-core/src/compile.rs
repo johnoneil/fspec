@@ -81,3 +81,53 @@ pub fn compile_component(ast: &ComponentAst) -> Result<CompiledComponent, Error>
         placeholder_indices,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use fspec_placeholder::parse_component;
+
+    #[test]
+    fn test_oneof_case_sensitivity() {
+        // Test that one-of choices match both cases when explicitly provided
+        let ast = parse_component("{snake|SNAKE}").unwrap();
+        let compiled = compile_component(&ast).unwrap();
+
+        // The regex should be ^(?:snake|SNAKE)$
+        assert!(compiled.regex.is_match("snake"));
+        assert!(compiled.regex.is_match("SNAKE"));
+        assert!(!compiled.regex.is_match("Snake")); // Mixed case shouldn't match
+    }
+
+    #[test]
+    fn test_oneof_with_literal_prefix() {
+        // Test pattern like "test.{snake|SNAKE}"
+        let ast = parse_component("test.{snake|SNAKE}").unwrap();
+        let compiled = compile_component(&ast).unwrap();
+
+        assert!(compiled.regex.is_match("test.snake"));
+        assert!(compiled.regex.is_match("test.SNAKE"));
+        assert!(!compiled.regex.is_match("test.Snake"));
+    }
+
+    #[test]
+    fn test_full_pattern_like_golden_test() {
+        // Test the actual pattern from golden_limiters.rs
+        // Pattern: {name:snake_case}_{name}_{year:int(4)}.{snake|SNAKE}
+        let ast = parse_component("{name:snake_case}_{name}_{year:int(4)}.{snake|SNAKE}").unwrap();
+        let compiled = compile_component(&ast).unwrap();
+
+        println!("Generated regex: {}", compiled.regex.as_str());
+
+        let test1 = "snaked_name_snaked_name_1999.snake";
+        let test2 = "snaked_name_snaked_name_1999.SNAKE";
+
+        println!("Testing: {}", test1);
+        println!("Matches: {}", compiled.regex.is_match(test1));
+        println!("Testing: {}", test2);
+        println!("Matches: {}", compiled.regex.is_match(test2));
+
+        assert!(compiled.regex.is_match(test1), "Should match .snake");
+        assert!(compiled.regex.is_match(test2), "Should match .SNAKE");
+    }
+}
