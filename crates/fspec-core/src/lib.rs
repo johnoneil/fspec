@@ -13,7 +13,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 pub use error::Error;
-pub use spec::{DirType, FSEntry, FSPattern, FileType, MatchSettings, Rule, RuleKind};
+pub use spec::{DirType, FSEntry, FSPattern, FileType, MatchSettings, Rule, RuleKind, Severity};
 pub use walk::{WalkCtx, WalkOutput};
 
 pub fn check_tree(root: &Path, settings: &MatchSettings) -> Result<Report, Error> {
