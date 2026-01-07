@@ -187,6 +187,8 @@ fspec is intentionally staged. Not all features need to exist at once.
 - [ ] ambiguity detection and warnings
 - [ ] warn on re-allowed ignored paths
 - [ ] warn on ambiguous matches
+- [ ] Ignore hidden files by settings/switches.
+- [ ] Determine symlink behavior and allow control via settings/switches.
 - [ ] expand limiter list to a more ergonomic set including GUID, Date, URL, etc.
 
 ## Level 3 — Suggestions
