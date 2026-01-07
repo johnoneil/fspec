@@ -1,6 +1,58 @@
-## Placeholder / Component Mini-Grammar
+# `fspec` Placeholder Pattern Language
 
-EBNF-style notation
+`fspec` patterns are path-like strings with literals, globs, and placeholders.
+
+### Globs
+
+| FSPattern | Meaning                                |
+| ------- | -------------------------------------- |
+| `*`     | any characters within one path segment |
+| `**`    | zero or more path segments (recursive) |
+
+Examples:
+
+```fspec
+src/*
+src/**
+```
+
+### Placeholders
+
+Placeholders match exactly **one path segment** and may enforce constraints.
+
+Syntax:
+
+```
+{tag}
+{tag:limiter}
+{tag:limiter(args)}
+```
+
+Common built-in limiters. These ensure path or file segments match certain patterns:
+
+* `snake_case`
+* `PascalCase`
+* `kebab-case`
+* `int(n)` (exact width)
+
+Examples:
+
+```fspec
+{snake_case}.rs
+{year:int(4)}
+```
+
+### Repeated placeholders
+
+If the same placeholder tag appears more than once in a single pattern, all occurrences must match the **same value**.
+
+```fspec
+# Year must match across the `year` placeholders for the rule to apply.
+# This helps enforce the sort of consistency in naming that humans are bad at.
+movies/{year:int(4)}/{snake_case}_{year}.mp4
+```
+
+# EBNF style mini grammar
 
 ### 0. Scope
 

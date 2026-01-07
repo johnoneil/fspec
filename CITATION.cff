@@ -1,0 +1,7 @@
+cff-version: 1.2.0
+title: "fspec: Declarative Filesystem Specifications"
+authors:
+  - family-names: O'Neil
+    given-names: John
+year: 2025
+license: Apache-2.0

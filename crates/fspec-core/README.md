@@ -1,6 +1,70 @@
 ## `.fspec` Mini-Grammar (fspec-core)
 
-EBNF-style notation.
+## Rule Evaluation Semantics
+
+These rules are fundamental and should be considered *part of the spec*:
+
+### 1. Default policy
+
+Anything not ignored or matched by an `allow` rule is reported (warning or error).
+
+### 2. Anchored vs unanchored patterns
+
+* FSPatterns starting with `./` or `/` (equivalent) are **anchored** at the directory containing the `.fspec`.
+
+```fspec
+# these three examples are equivalent patterns, anchored at directory containing the .fspec
+./src/main.rs
+allow ./src/main.rs
+allow /src/main.rs
+```
+
+* FSPatterns without a leading `./` or `/` are **unanchored** and may match anywhere.
+
+```fspec
+# only matches ./bin
+./bin
+ # only matches ./bin
+/bin
+ # matches bin at any depth
+bin
+```
+
+### 3. Ignore rules
+
+* ignore suppresses reporting of violations for a file or directory and its descendants unless later rules re-include them.
+* A trailing `/` means *directory-only*
+
+```fspec
+# ignore a *directory* named "bin" at fspec root (anchored).
+ignore ./bin/
+# ignore a file named "bin" at fspec root (anchored)
+ignore ./bin
+# ignore a directory named "bin" anywhere.
+ignore bin/
+# ignore a *file* named "bin" anywhere.
+ignore bin
+```
+### 4. Order matters
+
+Rules are evaluated **top to bottom**.
+
+If multiple rules match a path, **the last matching rule wins**. As a consequence, later allow rules may re-include files or directories that were previously matched by ignore rules, including via anchored or unanchored patterns.
+
+Such re-inclusions are permitted by default, and may optionally emit warnings or be disallowed under stricter user settings.
+
+### 5. Directories implied by allowed files
+
+If a file or directory is allowed, the directories required to reach it are considered **structurally allowed**.
+You do not need to separately allow every directory component.
+
+### 6. Directory/file name collisions
+
+Files which pass directory naming specs are emitted as warnings by default.
+
+Directories which pass file naming specs are emitted as warnings by default.
+
+---
 
 ### Scope
 
@@ -9,6 +73,8 @@ This grammar describes **how an `.fspec` file is split into rules** (`allow` / `
 It does **not** describe placeholder/component parsing (that’s `fspec-placeholder`), nor the internal pattern grammar (that lives in the pattern module).
 
 ---
+
+# EBNF-style mini grammar
 
 ## 1. File structure
 

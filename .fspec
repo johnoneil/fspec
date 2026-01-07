@@ -1,19 +1,21 @@
-# ignore build artifacts at root only.
-# if different artifacts are polluting crates, it will be reported.
+# build artifacts at root only.
 ignore ./target/
-# ignore any hidden files
+
+# we currently have to explicitly ignore hidden files
 ignore ./.*
 
 # root workspace files
-# we allow a Cargo.lock at workspace root and nowhere else.
 allow ./Cargo.toml
 allow ./Cargo.lock
+allow ./LICENSE
+allow ./NOTICE
+allow ./CITATION.cff
 
-# allow markdown anywhere
-allow *.md
+# docs
+allow ./README.md
+allow docs/*.md
 
 # crates.
-# kebab-case crate naming
 allow ./crates/{crate:kebab_case}/Cargo.toml
-# snake_case naming of source files under certain trees.
 allow ./crates/{crate:kebab_case}/{src|tests|examples}/**/{snake_case}.rs
+allow ./crates/{crate:kebab_case}/README.md
