@@ -97,7 +97,7 @@ Anything not matching these rules will be reported.
 
 ## The `.fspec` File Format (v1)
 
-This section gives a brief outline of the `.fspec` file format. [See the mini-grammar description for more detail](./crates/fspec-core/docs/fspec-file-grammar.md).
+This section gives a brief outline of the `.fspec` file format. [See the mini-grammar description for more detail](./crates/fspec-core/README.md).
 
 An `.fspec` file is a **line-based specification**.
 
