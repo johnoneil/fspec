@@ -13,7 +13,7 @@ allow ./CITATION.cff
 
 # docs
 allow ./README.md
-allow docs/*.md
+allow docs/**/*.md
 
 # crates.
 allow ./crates/{crate:kebab_case}/Cargo.toml

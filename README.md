@@ -83,7 +83,7 @@ allow ./Cargo.lock
 
 # docs
 allow ./README.md
-allow docs/*.md
+allow docs/**/*.md
 
 # crates.
 allow ./crates/{crate:kebab_case}/Cargo.toml
@@ -182,6 +182,7 @@ fspec is intentionally staged. Not all features need to exist at once.
 
 ## Level 2 — Diagnostics and Expansion
 
+- [ ] Named path aliases (reduce repetition; improve readability for hierarchical specs) [see proposal.](./docs/proposals/named-path-aliases.md)
 - [ ] explain which rule matched
 - [ ] ambiguity detection and warnings
 - [ ] warn on re-allowed ignored paths
