@@ -23,6 +23,8 @@ The goal is to help manage:
 
 For further information [see the design goals document here.](./docs/fspec_design_goals.md)
 
+I did work on this tool during winter break from grad school 2025/26 as an experiment to become more familiar with modern LLM/AI code assist workflows. This project will probably remain dormant while I complete schoolwork.
+
 ---
 
 ## Core Ideas
