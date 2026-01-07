@@ -1,11 +1,20 @@
 name: CI
 
 # This workflow runs tests, formatting checks, and the fspec tool.
-# To require passing CI for merges to master/main:
-#   1. Go to Settings > Branches in your GitHub repository
-#   2. Add a branch protection rule for master/main
-#   3. Enable "Require status checks to pass before merging"
-#   4. Select "Test Suite" as the required status check
+#
+# To set up branch protection for master/main (require reviews and passing CI):
+#   1. Go to your repository on GitHub
+#   2. Navigate to Settings > Branches
+#   3. Click "Add branch protection rule" or edit existing rule for master/main
+#   4. Enable the following options:
+#      - "Require a pull request before merging"
+#        - Enable "Require approvals" (set to 1 or more)
+#        - Optionally enable "Dismiss stale pull request approvals when new commits are pushed"
+#      - "Require status checks to pass before merging"
+#        - Select "Test Suite" as the required status check
+#      - Optionally: "Require conversation resolution before merging"
+#      - Optionally: "Do not allow bypassing the above settings" (prevents admins from bypassing)
+#   5. Click "Create" or "Save changes"
 #
 # Note: Branch protection cannot be configured via files alone - it requires
 # repository settings access. However, this workflow will fail if tests don't pass,

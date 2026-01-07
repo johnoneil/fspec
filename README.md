@@ -1,6 +1,6 @@
 # fspec — Declarative Filesystem Specifications
 
-![CI](https://github.com/USERNAME/REPO/actions/workflows/ci.yml/badge.svg)
+![CI](https://github.com/johnoneil/fspec/actions/workflows/ci.yml/badge.svg)
 
 fspec is an experimental, declarative filesystem specification and validation tool, suitable for CI pipelines, auditing, and long-lived project structure enforcement. It provides a way to formally describe expected filesystem structure (directories, files, naming conventions, style, and invariants) in a way that is:
 
