@@ -5,7 +5,7 @@ name: CI
 #   1. Go to Settings > Branches in your GitHub repository
 #   2. Add a branch protection rule for master/main
 #   3. Enable "Require status checks to pass before merging"
-#   4. Select "Test Suite - ubuntu-24.04" (and optionally Windows if enabled)
+#   4. Select "Test Suite" as the required status check
 #
 # Note: Branch protection cannot be configured via files alone - it requires
 # repository settings access. However, this workflow will fail if tests don't pass,
@@ -16,26 +16,15 @@ on:
     branches: [ master, main ]
   pull_request:
     branches: [ master, main ]
+  workflow_dispatch:  # Allows manual triggering from GitHub Actions UI
 
 env:
   CARGO_TERM_COLOR: always
 
-# To disable Windows CI:
-#   Option 1: Set repository variable ENABLE_WINDOWS_CI to 'false' (Settings > Secrets and variables > Actions > Variables)
-#   Option 2: Comment out the 'windows-latest' line in the matrix below
 jobs:
   test:
-    name: Test Suite - ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: 
-          - ubuntu-24.04
-          - windows-latest
-    
-    # Skip Windows job if disabled via repository variable
-    if: matrix.os != 'windows-latest' || vars.ENABLE_WINDOWS_CI != 'false'
+    name: Test Suite
+    runs-on: ubuntu-24.04
     
     steps:
       - uses: actions/checkout@v4
