@@ -1,0 +1,70 @@
+name: CI
+
+# This workflow runs tests, formatting checks, and the fspec tool.
+# To require passing CI for merges to master/main:
+#   1. Go to Settings > Branches in your GitHub repository
+#   2. Add a branch protection rule for master/main
+#   3. Enable "Require status checks to pass before merging"
+#   4. Select "Test Suite - ubuntu-24.04" (and optionally Windows if enabled)
+#
+# Note: Branch protection cannot be configured via files alone - it requires
+# repository settings access. However, this workflow will fail if tests don't pass,
+# which effectively enforces the requirement.
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+env:
+  CARGO_TERM_COLOR: always
+
+# To disable Windows CI:
+#   Option 1: Set repository variable ENABLE_WINDOWS_CI to 'false' (Settings > Secrets and variables > Actions > Variables)
+#   Option 2: Comment out the 'windows-latest' line in the matrix below
+jobs:
+  test:
+    name: Test Suite - ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: 
+          - ubuntu-24.04
+          - windows-latest
+    
+    # Skip Windows job if disabled via repository variable
+    if: matrix.os != 'windows-latest' || vars.ENABLE_WINDOWS_CI != 'false'
+    
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      
+      - name: Cache cargo registry
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ runner.home }}/.cargo/bin/
+            ${{ runner.home }}/.cargo/registry/index/
+            ${{ runner.home }}/.cargo/registry/cache/
+            ${{ runner.home }}/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+      
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+      
+      - name: Run tests
+        run: cargo test --workspace --all-features
+      
+      - name: Run fspec tool
+        run: cargo run
+        working-directory: ${{ github.workspace }}
+

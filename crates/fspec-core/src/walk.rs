@@ -145,9 +145,6 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
     // Build the absolute path we are currently at.
     let abs = ctx.root.join(&ctx.rel);
 
-    // Debug: entering directory
-    debug_enter(ctx, &abs);
-
     let rd = fs::read_dir(&abs).map_err(|e| Error::Io {
         path: abs.clone(),
         source: e,
@@ -240,7 +237,6 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
         }
     }
 
-    debug_exit(ctx, &abs);
     Ok(())
 }
 
@@ -322,46 +318,4 @@ fn classify_entry_last_wins(
     }
 
     Verdict::Unaccounted
-}
-
-#[cfg(debug_assertions)]
-fn debug_enter(ctx: &WalkCtx, abs: &Path) {
-    let rel_disp = if ctx.rel.as_os_str().is_empty() {
-        ".".to_string()
-    } else {
-        ctx.rel.display().to_string()
-    };
-
-    #[cfg(feature = "debug-walk")]
-    eprintln!(
-        "{}> enter {}  (abs={})  live_rules={}  inherited={:?}",
-        indent(ctx.depth),
-        rel_disp,
-        abs.display(),
-        ctx.live_rule_idxs.len(),
-        ctx.inherited
-    );
-}
-
-#[cfg(feature = "debug-walk")]
-fn debug_enter(_ctx: &WalkCtx, _abs: &Path) {}
-
-#[cfg(feature = "debug-walk")]
-fn debug_exit(ctx: &WalkCtx, _abs: &Path) {
-    let rel_disp = if ctx.rel.as_os_str().is_empty() {
-        ".".to_string()
-    } else {
-        ctx.rel.display().to_string()
-    };
-
-    eprintln!("{}< exit  {}", indent(ctx.depth), rel_disp);
-}
-
-#[cfg(not(feature = "debug-walk"))]
-fn debug_exit(_ctx: &WalkCtx, _abs: &Path) {}
-
-#[cfg(feature = "debug-walk")]
-fn indent(depth: usize) -> String {
-    // 2 spaces per depth, cheap and readable
-    "  ".repeat(depth)
 }
