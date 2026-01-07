@@ -1,6 +1,6 @@
 # fspec — Declarative Filesystem Specifications
 
-fspec is an experimental tool and specification for formally describing expected filesystem structure (directories, files, naming conventions, style, and invariants) in a way that is:
+fspec is an experimental, declarative filesystem specification and validation tool, suitable for CI pipelines, auditing, and long-lived project structure enforcement. It provides a way to formally describe expected filesystem structure (directories, files, naming conventions, style, and invariants) in a way that is:
 
 * human-readable
 * machine-verifiable
@@ -35,6 +35,15 @@ I did work on this tool during winter break from grad school 2025/26 as an exper
 * The format is intentionally small and constrained.
 * Additions to the `.fspec` are easy, but should be discussed by shareholders. This allows filesystem conventions to be subject to a carefully controlled review.
 * LLMs will plainly be heavily involved in maintenance of large filesystems. `.fspec` allows a way to explicitly define filesystem structure and file naming conventions such that LLMs (and human teams) can make informed decisions.
+
+---
+
+## Use cases
+
+- CI validation of project structure
+- Auditing large data or media archives
+- Enforcing naming and placement conventions
+- Providing explicit filesystem contracts to teams and tools
 
 ---
 
