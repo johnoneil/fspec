@@ -25,11 +25,14 @@ pub enum Severity {
     Error,
 }
 
-/// core settings (to be expanded)
+/// Core settings that control matching behavior.
 #[derive(Debug, Clone, Copy)]
 pub struct MatchSettings {
-    /// If true, a non-slash-terminated leaf may match a file OR a directory
+    /// If `true`, a non-slash-terminated leaf pattern may match either a file or a directory.
+    /// This matches the behavior of tools like `find` and `.gitignore`.
+    /// If `false`, patterns without a trailing slash only match files.
     pub allow_file_or_dir_leaf: bool,
+    /// Default severity level for unaccounted paths in the report.
     pub default_severity: Severity,
 }
 

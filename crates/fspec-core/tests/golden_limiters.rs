@@ -10,6 +10,7 @@ fn write_file(path: &Path, contents: &str) {
     fs::write(path, contents).unwrap();
 }
 
+#[allow(dead_code)]
 fn create_dir(path: &Path) {
     fs::create_dir_all(path).unwrap();
     assert!(path.is_dir());

@@ -16,11 +16,42 @@ pub use report::Report;
 pub use spec::{DirType, FSEntry, FSPattern, FileType, MatchSettings, Rule, RuleKind, Severity};
 pub use walk::{WalkCtx, WalkOutput};
 
+/// Check a directory tree against an `.fspec` file located at `{root}/.fspec`.
+///
+/// This is a convenience function that calls `check_tree_with_spec` with `spec_path = None`.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The `.fspec` file is not found at `{root}/.fspec`
+/// - The `.fspec` file cannot be read
+/// - The `.fspec` file contains invalid syntax
+/// - An I/O error occurs while walking the directory tree
 pub fn check_tree(root: &Path, settings: &MatchSettings) -> Result<Report, Error> {
     check_tree_with_spec(root, None, settings)
 }
 
+/// Check a directory tree against an `.fspec` file.
+///
 /// If `spec_path` is `Some`, that path is used. Otherwise defaults to `{root}/.fspec`.
+///
+/// # Arguments
+///
+/// * `root` - The root directory to check
+/// * `spec_path` - Optional path to the `.fspec` file. If `None`, looks for `.fspec` at the root.
+/// * `settings` - Matching settings that control behavior (e.g., file vs directory matching)
+///
+/// # Returns
+///
+/// A `Report` containing the validation results, or an `Error` if something went wrong.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The `.fspec` file is not found
+/// - The `.fspec` file cannot be read
+/// - The `.fspec` file contains invalid syntax
+/// - An I/O error occurs while walking the directory tree
 pub fn check_tree_with_spec(
     root: &Path,
     spec_path: Option<&Path>,
@@ -34,14 +65,20 @@ pub fn check_tree_with_spec(
 
     if !fspec_path.exists() {
         return Err(Error::Semantic {
-            msg: format!(".fspec not found at {}", fspec_path.display()),
+            msg: format!(
+                ".fspec file not found at {}\nHint: Create an .fspec file in the root directory or specify a different path with --spec",
+                fspec_path.display()
+            ),
         });
     }
 
     // Optional but usually helpful: fail early if it's not a file.
     if !fspec_path.is_file() {
         return Err(Error::Semantic {
-            msg: format!("spec path is not a file: {}", fspec_path.display()),
+            msg: format!(
+                "Spec path is not a file: {}\nHint: The .fspec file must be a regular file, not a directory",
+                fspec_path.display()
+            ),
         });
     }
 
