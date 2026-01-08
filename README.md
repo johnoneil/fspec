@@ -190,6 +190,7 @@ fspec is intentionally staged. Not all features need to exist at once.
 - [x] Introduce a command line tool wrapper crate.
 - [x] Make the basic rule engine usable in real world cases.
 - [x] Command line tool output switches and JSON report output.
+- [x] Linux/Windows/Macos in CI and releases.
 
 ## Level 2 — Diagnostics and Expansion
 
