@@ -189,11 +189,13 @@ fspec is intentionally staged. Not all features need to exist at once.
 - [x] Improve the parsing grammar design to require/allow the `:` sigil for limiters.
 - [x] Introduce a command line tool wrapper crate.
 - [x] Make the basic rule engine usable in real world cases.
-- [ ] Command line tool output switches and JSON report output.
+- [x] Command line tool output switches and JSON report output.
 
 ## Level 2 — Diagnostics and Expansion
 
 - [ ] Named path aliases (reduce repetition; improve readability for hierarchical specs) [see proposal.](./docs/proposals/named-path-aliases.md)
+- [ ] Improve command line switches
+- [ ] Improve logging and verbosity
 - [ ] explain which rule matched
 - [ ] ambiguity detection and warnings
 - [ ] warn on re-allowed ignored paths
