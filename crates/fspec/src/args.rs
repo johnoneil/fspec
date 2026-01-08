@@ -13,7 +13,7 @@ pub struct Cli {
     #[arg(long)]
     pub root: Option<PathBuf>,
 
-    /// Explicit spec file path (NOT IMPLEMENTED YET in core)
+    /// Explicit spec file path
     #[arg(long)]
     pub spec: Option<PathBuf>,
 
