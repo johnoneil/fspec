@@ -1,7 +1,7 @@
 mod args;
 mod render;
 
-use crate::args::{Cli, LeafMode, SeverityArg};
+use crate::args::{Cli, LeafMode, OutputFormat, SeverityArg};
 use clap::Parser;
 use fspec_core::{MatchSettings, Severity, check_tree, check_tree_with_spec};
 use std::path::{Path, PathBuf};
@@ -33,11 +33,9 @@ fn main() -> ExitCode {
         std::process::exit(2);
     });
 
-    let out = render::render_human(&report, &settings, cli.verbosity, cli.quiet);
+    let out = render::render(&report, &settings, cli.format, cli.verbosity, cli.quiet);
 
-    // For now always stdout (per your “ok if incomplete” note).
-    // --output/--format can land tomorrow.
-    print!("{out}");
+    println!("{}", out);
 
     // Current “finding” heuristic: any unaccounted path => fail.
     // (In the future: incorporate per-item severity + threshold logic.)
