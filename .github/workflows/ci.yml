@@ -104,6 +104,21 @@ jobs:
         run: cargo run --target ${{ matrix.target }}
         working-directory: ${{ github.workspace }}
 
+  # Aggregation job that reports overall test suite status
+  test-complete:
+    name: Test Suite
+    needs: [test]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check test results
+        run: |
+          if [ "${{ needs.test.result }}" != "success" ]; then
+            echo "One or more test jobs failed"
+            exit 1
+          fi
+          echo "All test jobs passed successfully"
+
   # Build release binaries for all platforms
   build:
     name: Build Release (${{ matrix.os }})
