@@ -17,6 +17,10 @@ pub struct Cli {
     #[arg(long)]
     pub spec: Option<PathBuf>,
 
+    /// Output format
+    #[arg(long, value_enum, default_value_t = OutputFormat::Human)]
+    pub format: OutputFormat,
+
     /// Leaf matching mode
     #[arg(long, value_enum, default_value_t = LeafMode::Loose)]
     pub leaf: LeafMode,
@@ -32,6 +36,12 @@ pub struct Cli {
     /// Verbosity (-v, -vv)
     #[arg(short = 'v', long, action = clap::ArgAction::Count)]
     pub verbosity: u8,
+}
+
+#[derive(Debug, Clone, Copy, ValueEnum)]
+pub enum OutputFormat {
+    Human,
+    Json,
 }
 
 #[derive(Debug, Clone, Copy, ValueEnum)]

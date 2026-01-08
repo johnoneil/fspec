@@ -1,4 +1,74 @@
+use crate::args::OutputFormat;
 use fspec_core::{MatchSettings, Report, Severity};
+use serde::Serialize;
+
+const SCHEMA_VERSION: &str = "fspec.report.v1";
+const TOOL_VERSION: &str = env!("CARGO_PKG_VERSION");
+
+// Until the report schema stabilizes, we probably don't want to directly deserialize the
+// struct via serde. so we use a helper.
+// This
+#[derive(Serialize)]
+struct JsonOut<'a> {
+    schema_version: &'static str,
+    tool_version: &'static str,
+    ok: bool,
+    unaccounted: Vec<&'a str>,
+    diagnostics: Vec<JsonDiag<'a>>,
+    summary: JsonSummary,
+}
+
+#[derive(Serialize)]
+struct JsonDiag<'a> {
+    code: &'a str,
+    severity: String,
+    path: &'a str,
+    message: &'a str,
+    rule_lines: &'a [usize],
+}
+
+#[derive(Serialize)]
+struct JsonSummary {
+    unaccounted_count: usize,
+    // you can add more later without breaking humans
+}
+
+fn severity_to_string(sev: Severity) -> String {
+    match sev {
+        Severity::Info => "info",
+        Severity::Warning => "warning",
+        Severity::Error => "error",
+    }
+    .to_string()
+}
+
+pub fn render_json(report: &Report, settings: &MatchSettings) -> String {
+    let un = report.unaccounted_paths();
+    let diags = report.diagnostics();
+
+    let out = JsonOut {
+        schema_version: SCHEMA_VERSION,
+        tool_version: TOOL_VERSION,
+        ok: un.is_empty(),
+        unaccounted: un.clone(),
+        diagnostics: diags
+            .iter()
+            .map(|d| JsonDiag {
+                code: d.code,
+                severity: severity_to_string(d.severity),
+                path: d.path.as_str(),
+                message: d.message.as_str(),
+                rule_lines: &d.rule_lines,
+            })
+            .collect(),
+        summary: JsonSummary {
+            unaccounted_count: un.len(),
+        },
+    };
+
+    // if this fails, it’s a programmer error; still return something sane
+    serde_json::to_string_pretty(&out).unwrap_or_else(|_| "{\"ok\":false}".to_string())
+}
 
 pub fn render_human(
     report: &Report,
@@ -50,4 +120,17 @@ pub fn render_human(
     }
 
     out
+}
+
+pub fn render(
+    report: &Report,
+    settings: &MatchSettings,
+    format: OutputFormat,
+    verbosity: u8,
+    quiet: bool,
+) -> String {
+    match format {
+        OutputFormat::Human => render_human(report, settings, verbosity, quiet),
+        OutputFormat::Json => render_json(report, settings),
+    }
 }

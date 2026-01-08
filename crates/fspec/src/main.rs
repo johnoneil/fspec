@@ -1,9 +1,9 @@
 mod args;
 mod render;
 
-use crate::args::{Cli, LeafMode, SeverityArg};
+use crate::args::{Cli, LeafMode, OutputFormat, SeverityArg};
 use clap::Parser;
-use fspec_core::{MatchSettings, Severity, check_tree};
+use fspec_core::{MatchSettings, Severity, check_tree, check_tree_with_spec};
 use std::path::{Path, PathBuf};
 use std::process::ExitCode;
 
@@ -11,15 +11,6 @@ fn main() -> ExitCode {
     let cli = Cli::parse();
 
     let root: PathBuf = resolve_root(&cli);
-
-    // NOTE: fspec-core currently hardcodes <root>/.fspec inside check_tree().
-    // Until core supports a custom spec path, we error out if --spec is used.
-    if cli.spec.is_some() {
-        eprintln!(
-            "error: --spec is not implemented yet (fspec-core currently only reads <root>/.fspec)"
-        );
-        return ExitCode::from(2);
-    }
 
     let mut settings = MatchSettings::default();
 
@@ -32,27 +23,19 @@ fn main() -> ExitCode {
         SeverityArg::Error => Severity::Error,
     };
 
-    // TODO: Update check_tree to support running an a different directory than
-    // the .fspec resides in. like:
-    // let report = if let Some(spec) = &cli.spec {
-    //     check_tree_with_spec(&root, spec, &settings)
-    // } else {
-    //     check_tree(&root, &settings)
-    // };
+    let report = (if let Some(spec) = cli.spec.as_deref() {
+        check_tree_with_spec(&root, Some(spec), &settings)
+    } else {
+        check_tree(&root, &settings)
+    })
+    .unwrap_or_else(|e| {
+        eprintln!("{e}");
+        std::process::exit(2);
+    });
 
-    let report = match check_tree(&root, &settings) {
-        Ok(r) => r,
-        Err(e) => {
-            eprintln!("{e}");
-            return ExitCode::from(2);
-        }
-    };
+    let out = render::render(&report, &settings, cli.format, cli.verbosity, cli.quiet);
 
-    let out = render::render_human(&report, &settings, cli.verbosity, cli.quiet);
-
-    // For now always stdout (per your “ok if incomplete” note).
-    // --output/--format can land tomorrow.
-    print!("{out}");
+    println!("{}", out);
 
     // Current “finding” heuristic: any unaccounted path => fail.
     // (In the future: incorporate per-item severity + threshold logic.)
