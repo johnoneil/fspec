@@ -2,11 +2,16 @@ use crate::args::OutputFormat;
 use fspec_core::{MatchSettings, Report, Severity};
 use serde::Serialize;
 
+const SCHEMA_VERSION: &str = "fspec.report.v1";
+const TOOL_VERSION: &str = env!("CARGO_PKG_VERSION");
+
 // Until the report schema stabilizes, we probably don't want to directly deserialize the
 // struct via serde. so we use a helper.
 // This
 #[derive(Serialize)]
 struct JsonOut<'a> {
+    schema_version: &'static str,
+    tool_version: &'static str,
     ok: bool,
     unaccounted: Vec<&'a str>,
     diagnostics: Vec<JsonDiag<'a>>,
@@ -42,6 +47,8 @@ pub fn render_json(report: &Report, settings: &MatchSettings) -> String {
     let diags = report.diagnostics();
 
     let out = JsonOut {
+        schema_version: SCHEMA_VERSION,
+        tool_version: TOOL_VERSION,
         ok: un.is_empty(),
         unaccounted: un.clone(),
         diagnostics: diags
