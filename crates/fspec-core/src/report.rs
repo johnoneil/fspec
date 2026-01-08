@@ -40,15 +40,26 @@ fn canon_key(s: &str) -> String {
     t
 }
 
+/// A diagnostic message about a path or rule.
 #[derive(Debug, Clone)]
 pub struct Diagnostic {
-    pub code: &'static str,     // e.g. "ambiguous_match", "reallowed_under_ignore"
-    pub severity: Severity,     // usually Warning
-    pub path: String,           // normalized relative path with '/'
-    pub message: String,        // human-readable
-    pub rule_lines: Vec<usize>, // optional: lines involved
+    /// Diagnostic code (e.g., "ambiguous_match", "reallowed_under_ignore")
+    pub code: &'static str,
+    /// Severity level of the diagnostic
+    pub severity: Severity,
+    /// Normalized relative path (using '/' as separator)
+    pub path: String,
+    /// Human-readable message describing the issue
+    pub message: String,
+    /// Line numbers in the `.fspec` file that are involved (if applicable)
+    pub rule_lines: Vec<usize>,
 }
 
+/// A report containing the results of validating a directory tree against an `.fspec` file.
+///
+/// The report contains:
+/// - Status information for each path (allowed, ignored, or unaccounted)
+/// - Diagnostic messages about potential issues
 #[derive(Debug, Default)]
 pub struct Report {
     // Key: normalized relative path string ("src/main.rs", "bin", ...)

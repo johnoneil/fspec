@@ -42,7 +42,7 @@ fn severity_to_string(sev: Severity) -> String {
     .to_string()
 }
 
-pub fn render_json(report: &Report, settings: &MatchSettings) -> String {
+pub fn render_json(report: &Report, _settings: &MatchSettings) -> String {
     let un = report.unaccounted_paths();
     let diags = report.diagnostics();
 

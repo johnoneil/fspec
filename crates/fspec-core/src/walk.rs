@@ -194,7 +194,7 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
             let rel_path = ctx.rel.clone();
 
             match classify_entry_last_wins(ctx, rules, &rel_path, EntryKind::Dir) {
-                Verdict::Allow { .. } => ctx
+                Verdict::Allow { rule_idx: _ } => ctx
                     .walk_output
                     .allow_with_ancestors(rel_path.clone(), false),
                 Verdict::Unaccounted => ctx.walk_output.mark_unaccounted_dir(rel_path),
@@ -203,7 +203,7 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
                     // we just ignored a directory. set the inherited context flag.
                     ctx.inherited = InheritedState::SubtreeIgnored { rule_idx };
                 }
-                Verdict::IgnoredByInheritance { .. } => {
+                Verdict::IgnoredByInheritance { rule_idx: _ } => {
                     ctx.walk_output.mark_ignored_dir(rel_path);
                 }
             }
@@ -220,14 +220,14 @@ fn walk_dir(ctx: &mut WalkCtx, rules: &[Rule]) -> Result<(), Error> {
             let rel_path = ctx.rel.join(name.as_ref());
 
             match classify_entry_last_wins(ctx, rules, &rel_path, EntryKind::File) {
-                Verdict::Allow { .. } => {
+                Verdict::Allow { rule_idx: _ } => {
                     ctx.walk_output.allow_with_ancestors(rel_path.clone(), true)
                 }
                 Verdict::Unaccounted => ctx.walk_output.mark_unaccounted_file(rel_path),
-                Verdict::Ignore { .. } => {
+                Verdict::Ignore { rule_idx: _ } => {
                     ctx.walk_output.mark_ignored_file(rel_path.clone());
                 }
-                Verdict::IgnoredByInheritance { .. } => {
+                Verdict::IgnoredByInheritance { rule_idx: _ } => {
                     ctx.walk_output.mark_ignored_file(rel_path);
                 }
             }
@@ -247,10 +247,13 @@ enum EntryKind {
 }
 
 #[derive(Debug, Clone, Copy)]
+#[allow(dead_code)] // rule_idx fields reserved for future diagnostics
 enum Verdict {
-    Allow { rule_idx: usize }, // rule_idx reserved for future diagnostics
+    // rule_idx reserved for future diagnostics
+    Allow { rule_idx: usize },
     Ignore { rule_idx: usize },
-    IgnoredByInheritance { rule_idx: usize }, // rule_idx reserved for future diagnostics
+    // rule_idx reserved for future diagnostics
+    IgnoredByInheritance { rule_idx: usize },
     Unaccounted,
 }
 

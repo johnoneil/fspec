@@ -117,15 +117,8 @@ mod tests {
         let ast = parse_component("{name:snake_case}_{name}_{year:int(4)}.{snake|SNAKE}").unwrap();
         let compiled = compile_component(&ast).unwrap();
 
-        println!("Generated regex: {}", compiled.regex.as_str());
-
         let test1 = "snaked_name_snaked_name_1999.snake";
         let test2 = "snaked_name_snaked_name_1999.SNAKE";
-
-        println!("Testing: {}", test1);
-        println!("Matches: {}", compiled.regex.is_match(test1));
-        println!("Testing: {}", test2);
-        println!("Matches: {}", compiled.regex.is_match(test2));
 
         assert!(compiled.regex.is_match(test1), "Should match .snake");
         assert!(compiled.regex.is_match(test2), "Should match .SNAKE");

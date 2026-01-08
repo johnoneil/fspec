@@ -1,7 +1,7 @@
 mod args;
 mod render;
 
-use crate::args::{Cli, LeafMode, OutputFormat, SeverityArg};
+use crate::args::{Cli, LeafMode, SeverityArg};
 use clap::Parser;
 use fspec_core::{MatchSettings, Severity, check_tree, check_tree_with_spec};
 use std::path::{Path, PathBuf};
@@ -12,15 +12,13 @@ fn main() -> ExitCode {
 
     let root: PathBuf = resolve_root(&cli);
 
-    let mut settings = MatchSettings::default();
-
-    // These fields are described in your CLI design doc.
-    // If your MatchSettings uses setters instead of public fields, adapt accordingly.
-    settings.allow_file_or_dir_leaf = matches!(cli.leaf, LeafMode::Loose);
-    settings.default_severity = match cli.severity {
-        SeverityArg::Info => Severity::Info,
-        SeverityArg::Warning => Severity::Warning,
-        SeverityArg::Error => Severity::Error,
+    let settings = MatchSettings {
+        allow_file_or_dir_leaf: matches!(cli.leaf, LeafMode::Loose),
+        default_severity: match cli.severity {
+            SeverityArg::Info => Severity::Info,
+            SeverityArg::Warning => Severity::Warning,
+            SeverityArg::Error => Severity::Error,
+        },
     };
 
     let report = (if let Some(spec) = cli.spec.as_deref() {
